@@ -1,4 +1,6 @@
+from enum import auto
 import PySimpleGUI as sg
+from PySimpleGUI.PySimpleGUI import VerticalSeparator
 from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
 
 # GUI Constants
@@ -21,12 +23,13 @@ PROFICIENCY_KEY = 'proficient'
 HIT_BONUS_KEY = 'hit-bonus'
 AVG_HIT_DAMAGE_KEY = 'avg-hit-damage'
 AVG_DAMAGE_KEY = 'avg-damage'
+WEAPON_DAMAGE_FRAME_KEY = 'weapon-damage-frame'
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
     CHARACTER_DAMAGE_MOD_KEY, TARGET_AC_KEY, WEAPON_TYPE_KEY, WEAPON_BONUS_KEY,
     DICE_NUMBER_KEY, DAMAGE_DIE_KEY, DAMAGE_TYPE_KEY, PROFICIENCY_KEY]
 
-NUM_DAMAGE_PANELS = 1
+NUM_DAMAGE_PANELS = 3
 
 def main():
     sg.theme(THEME)
@@ -80,60 +83,100 @@ def main_window() -> sg.Window:
 def combat_panel() -> sg.Column:
     layout = [
         [character_panel()],
-        [weapon_panel(1), weapon_panel(2)]
+        [weapon_panel(1), weapon_panel(2)],
+        [sg.HorizontalSeparator()],
+        [sg.Frame('Results', layout=[[weapon_result_panel(1), sg.VerticalSeparator(), weapon_result_panel(2)]])]
     ]
 
     return sg.Column(layout)
 
 def character_panel() -> sg.Column:
     layout = [
-        [sg.Text('Character Level: '), sg.Spin([i for i in range(1, 20)], key=CHARACTER_LEVEL_KEY, enable_events=True)],
-        [sg.Text('Attack Stat: '), sg.Spin([i for i in range(1, 30)], initial_value=10, key=CHARACTER_ATTACK_STAT_KEY, enable_events=True)],
-        [sg.Text('Additional Damage Modifier: '), sg.Spin([i for i in range(0, 100)], key=CHARACTER_DAMAGE_MOD_KEY, enable_events=True)],
-        [sg.Text('Target AC: '), sg.Spin([i for i in range(1, 30)], initial_value=16, key=TARGET_AC_KEY, enable_events=True)],
+        [sg.Text('Character Level:', size=(30, 1), justification='right'),
+            sg.Spin([i for i in range(1, 20)], key=CHARACTER_LEVEL_KEY,
+                enable_events=True, size=(5,1), auto_size_text=False),
+            sg.Text('', size=(22,1))],
+        [sg.Text('Attack Stat:', size=(30, 1), justification='right'),
+            sg.Spin([i for i in range(1, 30)], initial_value=10,
+                key=CHARACTER_ATTACK_STAT_KEY, enable_events=True, size=(5,1),
+                auto_size_text=False),
+            sg.Text('', size=(22,1))],
+        [sg.Text('Additional Damage Modifier:', size=(30, 1), justification='right'),
+            sg.Spin([i for i in range(0, 100)], key=CHARACTER_DAMAGE_MOD_KEY,
+                enable_events=True, size=(5,1), auto_size_text=False),
+                sg.Text('', size=(22,1))],
+        [sg.Text('Target AC:', size=(30, 1), justification='right'),
+            sg.Spin([i for i in range(1, 30)], initial_value=16, key=TARGET_AC_KEY,
+                enable_events=True, size=(5,1), auto_size_text=False),
+                sg.Text('', size=(22,1))],
     ]
 
     return sg.Column(layout, expand_x=True, element_justification='center')
 
 def weapon_panel(index: int) -> sg.Column:
-    layout = [
-        [sg.Text('Weapon type:'), sg.Combo(WeaponType.get_values(), default_value=WeaponType.get_display_name(WeaponType.CLUB), key=WEAPON_TYPE_KEY + f"-{index}", enable_events=True, readonly=True)],
-        [sg.Text('Bonus:'), sg.Spin([i for i in range(0, 10)], initial_value=0, key=WEAPON_BONUS_KEY + f"-{index}", enable_events=True)],
-        [sg.Checkbox('Proficient?', key=PROFICIENCY_KEY + f'-{index}', enable_events=True)]
-        #[sg.Button('Add', key=ADD_WEAPON_DAMAGE_BUTTON_KEY + f'-{index}')],
-        #[sg.Button('Remove', key=REMOVE_WEAPON_DAMAGE_BUTTON_KEY + f'-{index}', visible=False)]
+    layout = [[sg.Frame(f'Weapon {index}', layout=[
+                [sg.Text('Weapon type:', size=(15,1), justification='left'),
+                    sg.Combo(WeaponType.get_values(),
+                        default_value=WeaponType.get_display_name(WeaponType.CLUB),
+                        key=WEAPON_TYPE_KEY + f"-{index}", enable_events=True,
+                        readonly=True, size=(20, 1))],
+                [sg.Text('Bonus:', size=(15,1), justification='left'),
+                    sg.Spin([i for i in range(0, 10)], initial_value=0,
+                        key=WEAPON_BONUS_KEY + f"-{index}", enable_events=True,
+                        size=(5,1), auto_size_text=False)],
+                [sg.Text('Proficient?', size=(15,1), justification='left'),
+                    sg.Checkbox('', key=PROFICIENCY_KEY + f'-{index}',
+                        enable_events=True, default=True)]
+                ])],
+        [sg.Column(layout=[[sg.Button('Add', key=ADD_WEAPON_DAMAGE_BUTTON_KEY + f'-{index}')]]),
+            sg.Column(layout=[[sg.Button('Remove', key=REMOVE_WEAPON_DAMAGE_BUTTON_KEY + f'-{index}', visible=False)]])],
     ]
     damage_panels = []
     for panel in range(NUM_DAMAGE_PANELS):
-        damage_panels.append([weapon_damage_panel(index, panel + 1, True)])
+        damage_panels.append([weapon_damage_panel(index, panel + 1, False)])
     
     layout += [
-        [sg.Frame('Additional Damage', damage_panels)],
-        [weapon_result_panel(index)]
+        [sg.Frame('Additional Damage', damage_panels, key=f'{WEAPON_DAMAGE_FRAME_KEY}-{index}', visible=False)],
     ]
 
-    return sg.Column(layout, key=WEAPON_PANEL_KEY + f'-{index}')
+    return sg.Column(layout, key=WEAPON_PANEL_KEY + f'-{index}', expand_y=True)
 
 def weapon_damage_panel(parent_index: int, index: int, visible: bool = False) -> sg.Column:
     layout = [
-        [sg.Text('Number of dice:'), sg.Spin([i for i in range(0, 20)], initial_value=0, key=DICE_NUMBER_KEY + f"-{parent_index}-{index}", enable_events=True)],
-        [sg.Text('Damage die:'), sg.Combo(Dice.get_values(), default_value=Dice.get_display_name(Dice.D6), key=DAMAGE_DIE_KEY + f"-{parent_index}-{index}", enable_events=True, readonly=True)],
-        [sg.Text('Damage type:'), sg.Combo(DamageType.get_values(), default_value=DamageType.get_display_name(DamageType.BLUDGEONING), key=DAMAGE_TYPE_KEY + f"-{parent_index}-{index}", enable_events=True, readonly=True)]
+        [sg.Text('Number of dice:', size=(15,1), justification='left'),
+            sg.Spin([i for i in range(0, 20)], initial_value=0,
+                key=DICE_NUMBER_KEY + f"-{parent_index}-{index}",
+                enable_events=True, size=(5,1), auto_size_text=False)],
+        [sg.Text('Damage die:', size=(15,1), justification='left'),
+            sg.Combo(Dice.get_values(), default_value=Dice.get_display_name(Dice.D6),
+                key=DAMAGE_DIE_KEY + f"-{parent_index}-{index}", enable_events=True,
+                readonly=True, size=(5,1))],
+        [sg.Text('Damage type:', size=(15,1), justification='left'),
+            sg.Combo(DamageType.get_values(),
+                default_value=DamageType.get_display_name(DamageType.ACID),
+                key=DAMAGE_TYPE_KEY + f"-{parent_index}-{index}",
+                enable_events=True, readonly=True, size=(12,1))]
     ]
 
-    return sg.Column(layout, key=WEAPON_DAMAGE_PANEL_KEY + f"-{parent_index}-{index}", visible=visible)
+    return sg.Column(layout, key=WEAPON_DAMAGE_PANEL_KEY + f"-{parent_index}-{index}",
+            visible=visible, size=(291, 78))
 
 def weapon_result_panel(parent_index: int) -> sg.Column:
     layout = [
-        [sg.Text('Hit Bonus:'), sg.Text('0', key=HIT_BONUS_KEY + f"-{parent_index}", size=(10,1))],
-        [sg.Text('Average Damage:'), sg.Text('0', key=AVG_HIT_DAMAGE_KEY + f"-{parent_index}", size=(10,1))],
-        [sg.Text('Average Damage to target AC'), sg.Text('0', key=AVG_DAMAGE_KEY + f"-{parent_index}", size=(10,1))]
+        [sg.Text('Hit Bonus:', size=(20,1)),
+            sg.Text('0', key=HIT_BONUS_KEY + f"-{parent_index}", size=(10,1))],
+        [sg.Text('Average Damage on Hit:', size=(20,1)),
+            sg.Text('0', key=AVG_HIT_DAMAGE_KEY + f"-{parent_index}", size=(10,1))],
+        [sg.Text('Average Damage to Target:', size=(20,1)),
+            sg.Text('0', key=AVG_DAMAGE_KEY + f"-{parent_index}", size=(10,1))]
     ]
 
-    return sg.Column(layout)
+    return sg.Column(layout, size=(291, 78), pad=((5, 18), (5,5)))
 
 def add_weapon_damage(window: sg.Window, parent_index: int):
     # Find first hidden panel
+    window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].update(visible=True)
+    window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].unhide_row()
     next_index = -1
     parent_col = window[WEAPON_PANEL_KEY + f'-{parent_index}']
     for index in range(NUM_DAMAGE_PANELS):
@@ -144,7 +187,9 @@ def add_weapon_damage(window: sg.Window, parent_index: int):
     if next_index < 0:
         window[ADD_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=False)
         return
-    window[WEAPON_DAMAGE_PANEL_KEY + f'-{parent_index}-{next_index+1}'].update(visible=True)
+    col = window[WEAPON_DAMAGE_PANEL_KEY + f'-{parent_index}-{next_index+1}']
+    col.unhide_row()
+    col.update(visible=True)
     window[REMOVE_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=True)
     if (next_index == NUM_DAMAGE_PANELS - 1):
         window[ADD_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=False)
@@ -163,10 +208,13 @@ def remove_weapon_damage(window: sg.Window, parent_index: int):
         window[REMOVE_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=False)
         return
     col = window[WEAPON_DAMAGE_PANEL_KEY + f'-{parent_index}-{next_index}']
+    col.hide_row()
     col.update(visible=False)
     window[ADD_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=True)
     if (next_index == 1):
         window[REMOVE_WEAPON_DAMAGE_BUTTON_KEY + f'-{parent_index}'].update(visible=False)
+        window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].hide_row()
+        window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].update(visible=False)
     window.refresh()
 
 def update_weapon_attack(window: sg.Window, values: dict, index: int):

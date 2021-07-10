@@ -263,10 +263,10 @@ class WeaponAttack:
     
     @property
     def hit_bonus(self) -> int:
-        return (self.proficiency_bonus if self.proficient else 0) + self.attack_mod
+        return (self.proficiency_bonus if self.proficient else 0) + self.attack_mod + self.weapon.bonus
     
     def hit_chance(self, target_ac: int):
-        return max(min(Dice.D20 - target_ac + self.hit_bonus + self.weapon.bonus + 1, 19), 1)
+        return max(min(Dice.D20 - target_ac + self.hit_bonus + 1, 19), 1)
     
     def average_hit_damage(self) -> float:
         return self.weapon.average_damage() + self.attack_mod + self.damage_mod
