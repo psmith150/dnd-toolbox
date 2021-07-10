@@ -1,4 +1,5 @@
 from enum import Enum, auto, IntEnum
+from types import ClassMethodDescriptorType
 from typing import List
 from math import floor
 
@@ -31,6 +32,15 @@ class DamageType(Enum):
         except ValueError:
             display = 'Unknown'
         return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        try:
+            converted_name = name.upper()
+            value = DamageType[converted_name]
+        except KeyError:
+            value = DamageType.ACID
+        return value
 
 class Dice(IntEnum):
     D0 = 0
@@ -58,6 +68,15 @@ class Dice(IntEnum):
         except ValueError:
             display = 'Unknown'
         return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        try:
+            converted_name = name.upper()
+            value = Dice[converted_name]
+        except KeyError:
+            value = Dice.D0
+        return value
 
 class Damage:
     def __init__(self, num_dice: int, die: Dice, damage: DamageType) -> None:
@@ -106,7 +125,6 @@ class WeaponType(Enum):
     WARHAMMER = auto()
     WARHAMMER2H = auto()
     WHIP = auto()
-    RANGED = auto()
     BLOWGUN = auto()
     HAND_CROSSBOW = auto()
     HEAVY_CROSSBOW = auto()
@@ -133,6 +151,16 @@ class WeaponType(Enum):
         except ValueError:
             display = 'Unknown'
         return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        try:
+            converted_name = name.replace(' (2 hands)', '2H').replace(' ', '_').upper()
+            value = WeaponType[converted_name]
+        except KeyError:
+            value = WeaponType.CLUB
+        return value
+
 
 class Weapon:
     _weapon_map = {
