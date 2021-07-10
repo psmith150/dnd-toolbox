@@ -3,10 +3,39 @@ from typing import List
 from math import floor
 
 class DamageType(Enum):
+    ACID = auto()
     BLUDGEONING = auto()
+    COLD = auto()
+    FIRE = auto()
+    FORCE = auto()
+    LIGHTNING = auto()
+    NECROTIC = auto()
     PIERCING = auto()
+    POISON = auto()
+    PSYCHIC = auto()
+    RADIANT = auto()
+    SLASHING = auto()
+    THUNDER = auto()
+
+    @classmethod
+    def get_values(cls):
+        values = []
+        for name, member in DamageType.__members__.items():
+            values.append(name.title())
+        return values
+
+    @classmethod
+    def get_display_name(cls, value):
+        try:
+            display = DamageType(value).name.title()
+        except ValueError:
+            display = 'Unknown'
+        return display
 
 class Dice(IntEnum):
+    D0 = 0
+    D1 = 1
+    D2 = 2
     D4 = 4
     D6 = 6
     D8 = 8
@@ -14,6 +43,21 @@ class Dice(IntEnum):
     D12 = 12
     D20 = 20
     D100 = 100
+
+    @classmethod
+    def get_values(cls):
+        values = []
+        for name, member in Dice.__members__.items():
+            values.append(name.lower())
+        return values
+
+    @classmethod
+    def get_display_name(cls, value):
+        try:
+            display = Dice(value).name.lower()
+        except ValueError:
+            display = 'Unknown'
+        return display
 
 class Damage:
     def __init__(self, num_dice: int, die: Dice, damage: DamageType) -> None:
@@ -25,13 +69,115 @@ class Damage:
         return self.num_dice * (self.die + 1) / 2
 
 class WeaponType(Enum):
+    CLUB = auto()
+    DAGGER = auto()
+    GREATCLUB = auto()
+    HANDAXE = auto()
+    JAVELIN = auto()
+    LIGHT_HAMMER = auto()
     MACE = auto()
+    QUARTERSTAFF = auto()
+    QUARTERSTAFF2H = auto()
+    SICKLE = auto()
+    SPEAR = auto()
+    LIGHT_CROSSBOW = auto()
+    DART = auto()
+    SHORTBOW = auto()
+    SLING = auto()
+    BATTLEAXE = auto()
+    BATTLEAXE2H = auto()
+    FLAIL = auto()
+    GLAIVE = auto()
+    GREATAXE = auto()
+    GREATSWORD = auto()
+    HALBERD = auto()
+    LANCE = auto()
+    LONGSWORD = auto()
+    LONGSWORD2H = auto()
+    MAUL = auto()
+    MORNINGSTAR = auto()
+    PIKE = auto()
+    RAPIER = auto()
+    SCIMITAR = auto()
+    SHORTSWORD = auto()
+    TRIDENT = auto()
+    TRIDENT2H = auto()
+    WAR_PICK = auto()
     WARHAMMER = auto()
+    WARHAMMER2H = auto()
+    WHIP = auto()
+    RANGED = auto()
+    BLOWGUN = auto()
+    HAND_CROSSBOW = auto()
+    HEAVY_CROSSBOW = auto()
+    LONGBOW = auto()
+    NET = auto()
+
+    @classmethod
+    def get_values(cls):
+        values = []
+        for name, member in WeaponType.__members__.items():
+            if (name.endswith('2H')):
+                values.append(name[:-2].title().replace('_', ' ') + ' (2 hands)')
+            else:
+                values.append(name.title().replace('_', ' '))
+        return values
+    
+    @classmethod
+    def get_display_name(cls, value):
+        try:
+            name = WeaponType(value).name
+            if (name.endswith('2H')):
+                name = name[:-2] + ' (2 hands)'
+            display = name.title().replace('_', ' ')
+        except ValueError:
+            display = 'Unknown'
+        return display
 
 class Weapon:
     _weapon_map = {
+        WeaponType.CLUB: Damage(1, Dice.D4, DamageType.BLUDGEONING),
+        WeaponType.DAGGER: Damage(1, Dice.D4, DamageType.PIERCING),
+        WeaponType.GREATCLUB: Damage(1, Dice.D8, DamageType.BLUDGEONING),
+        WeaponType.HANDAXE: Damage(1, Dice.D6, DamageType.SLASHING),
+        WeaponType.JAVELIN: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.LIGHT_HAMMER: Damage(1, Dice.D4, DamageType.BLUDGEONING),
         WeaponType.MACE: Damage(1, Dice.D6, DamageType.BLUDGEONING),
+        WeaponType.QUARTERSTAFF: Damage(1, Dice.D6, DamageType.BLUDGEONING),
+        WeaponType.QUARTERSTAFF2H: Damage(1, Dice.D8, DamageType.BLUDGEONING),
+        WeaponType.SICKLE: Damage(1, Dice.D4, DamageType.SLASHING),
+        WeaponType.SPEAR: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.LIGHT_CROSSBOW: Damage(1, Dice.D8, DamageType.PIERCING),
+        WeaponType.DART: Damage(1, Dice.D4, DamageType.PIERCING),
+        WeaponType.SHORTBOW: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.SLING: Damage(1, Dice.D4, DamageType.BLUDGEONING),
+        WeaponType.BATTLEAXE: Damage(1, Dice.D8, DamageType.SLASHING),
+        WeaponType.BATTLEAXE2H: Damage(1, Dice.D10, DamageType.SLASHING),
+        WeaponType.FLAIL: Damage(1, Dice.D8, DamageType.BLUDGEONING),
+        WeaponType.GLAIVE: Damage(1, Dice.D10, DamageType.SLASHING),
+        WeaponType.GREATAXE: Damage(1, Dice.D12, DamageType.SLASHING),
+        WeaponType.GREATSWORD: Damage(2, Dice.D6, DamageType.SLASHING),
+        WeaponType.HALBERD: Damage(1, Dice.D10, DamageType.SLASHING),
+        WeaponType.LANCE: Damage(1, Dice.D12, DamageType.PIERCING),
+        WeaponType.LONGSWORD: Damage(1, Dice.D8, DamageType.SLASHING),
+        WeaponType.LONGSWORD2H: Damage(1, Dice.D10, DamageType.SLASHING),
+        WeaponType.MAUL: Damage(2, Dice.D6, DamageType.BLUDGEONING),
+        WeaponType.MORNINGSTAR: Damage(1, Dice.D8, DamageType.PIERCING),
+        WeaponType.PIKE: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.RAPIER: Damage(1, Dice.D8, DamageType.PIERCING),
+        WeaponType.SCIMITAR: Damage(1, Dice.D6, DamageType.SLASHING),
+        WeaponType.SHORTSWORD: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.TRIDENT: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.TRIDENT2H: Damage(1, Dice.D8, DamageType.PIERCING),
+        WeaponType.WAR_PICK: Damage(1, Dice.D8, DamageType.PIERCING),
         WeaponType.WARHAMMER: Damage(1, Dice.D8, DamageType.BLUDGEONING),
+        WeaponType.WARHAMMER2H: Damage(1, Dice.D10, DamageType.BLUDGEONING),
+        WeaponType.WHIP: Damage(1, Dice.D4, DamageType.SLASHING),
+        WeaponType.BLOWGUN: Damage(1, Dice.D1, DamageType.PIERCING),
+        WeaponType.LIGHT_CROSSBOW: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.HEAVY_CROSSBOW: Damage(1, Dice.D10, DamageType.PIERCING),
+        WeaponType.LONGBOW: Damage(1, Dice.D8, DamageType.PIERCING),
+        WeaponType.NET: Damage(1, Dice.D0, DamageType.SLASHING),
     }
     def __init__(self, weapon_type: WeaponType, bonus: int = 0, extra_damage: List[Damage] = []):
         self.weapon_type = weapon_type
