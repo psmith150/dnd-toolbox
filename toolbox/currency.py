@@ -36,6 +36,26 @@ class Currency():
             return NotImplemented
         return self.to_copper() < o.to_copper()
     
+    def __str__(self) -> str:
+        val = ''
+        val += f'{self.platinum}pp, ' if self.platinum > 0 else ''
+        val += f'{self.gold}gp, ' if self.gold > 0 else ''
+        val += f'{self.electrum}ep, ' if self.electrum > 0 else ''
+        val += f'{self.silver}sp, ' if self.silver > 0 else ''
+        val += f'{self.copper}cp, ' if (self.copper > 0 or self.to_copper() <= 0) else ''
+        while (val[-1] == ',' or val[-1] == ' '):
+            val = val[:-1]
+        return val
+    
+    def __add__(self, o:object) -> Currency:
+        if (not isinstance(o,Currency)):
+            return NotImplemented
+        return Currency(self.platinum + o.platinum,
+                self.gold + o.gold,
+                self.electrum + o.electrum,
+                self.silver + o.silver,
+                self.copper + o.copper)
+    
     def to_copper(self) -> int:
         return self.platinum * 1000 + self.gold * 100 + self.electrum * 50 + self.silver * 10 + self.copper
     

@@ -32,6 +32,23 @@ class CurrencyTestCase(TestCase):
         cur2 = Currency(1, 2, 3, 4, 0)
         self.assertNotEqual(cur1, cur2)
     
+    def test_to_string(self):
+        cur = Currency(1, 2, 3, 4, 5)
+        self.assertEqual(str(cur), '1pp, 2gp, 3ep, 4sp, 5cp')
+    
+    def test_to_string_trailing_commas(self):
+        cur = Currency(1, 0, 0, 0, 0)
+        self.assertEqual(str(cur), '1pp')
+    
+    def test_to_string_zero(self):
+        cur = Currency(0, 0, 0, 0, 0)
+        self.assertEqual(str(cur), '0cp')
+
+    def test_add(self):
+        cur1 = Currency(1, 2, 3, 4, 5)
+        cur2 = Currency(6, 7, 8, 9, 10)
+        self.assertEqual(Currency(7, 9, 11, 13, 15), cur1+cur2)
+    
     def test_to_copper(self):
         cur1 = Currency(1, 2, 3, 4, 5)
         self.assertEqual(cur1.to_copper(), 1395)

@@ -1,34 +1,68 @@
 from enum import auto
+from currency import Currency, CurrencyOptions
 import PySimpleGUI as sg
-from PySimpleGUI.PySimpleGUI import VerticalSeparator
+from PySimpleGUI.PySimpleGUI import Checkbox, HorizontalSeparator, VerticalSeparator
 from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
 
-# GUI Constants
+#region GUI Constants
 THEME = 'Dark Grey 13'
-COMBAT_SCREEN_KEY = 'screen-0'
-CURRENCY_SCREEN_KEY = 'screen-1'
-WEAPON_TYPE_KEY = 'weapon-type'
-WEAPON_BONUS_KEY = 'weapon-bonus'
-EXIT_BUTTON_KEY = 'exit'
-NAV_COMBO_KEY = 'nav'
-CHARACTER_LEVEL_KEY = 'character-level'
-CHARACTER_ATTACK_STAT_KEY = 'character-attack-stat'
-CHARACTER_DAMAGE_MOD_KEY = 'character-damage-mod'
-TARGET_AC_KEY = 'target-ac'
-WEAPON_PANEL_KEY = 'weapon-panel'
-ADD_WEAPON_DAMAGE_BUTTON_KEY = 'add-weapon-damage'
-REMOVE_WEAPON_DAMAGE_BUTTON_KEY = 'remove-weapon-damage'
-WEAPON_DAMAGE_PANEL_KEY = 'weapon-damage-panel'
-DICE_NUMBER_KEY = 'dice-number'
-DAMAGE_DIE_KEY = 'damage-die'
-DAMAGE_TYPE_KEY = 'damage-type'
-PROFICIENCY_KEY = 'proficient'
-HIT_BONUS_KEY = 'hit-bonus'
-AVG_HIT_DAMAGE_KEY = 'avg-hit-damage'
-AVG_DAMAGE_KEY = 'avg-damage'
-WEAPON_DAMAGE_FRAME_KEY = 'weapon-damage-frame'
-WEAPON_SUMMARY_KEY = 'weapon-damage-summary'
+COMBAT_SCREEN_KEY = '-screen-0-'
+CURRENCY_SCREEN_KEY = '-screen-1-'
+WEAPON_TYPE_KEY = '-weapon-type-'
+WEAPON_BONUS_KEY = '-weapon-bonus-'
+EXIT_BUTTON_KEY = '-exit-'
+NAV_COMBO_KEY = '-nav-'
+CHARACTER_LEVEL_KEY = '-character-level-'
+CHARACTER_ATTACK_STAT_KEY = '-character-attack-stat-'
+CHARACTER_DAMAGE_MOD_KEY = '-character-damage-mod-'
+TARGET_AC_KEY = '-target-ac-'
+WEAPON_PANEL_KEY = '-weapon-panel-'
+ADD_WEAPON_DAMAGE_BUTTON_KEY = '-add-weapon-damage-'
+REMOVE_WEAPON_DAMAGE_BUTTON_KEY = '-remove-weapon-damage-'
+WEAPON_DAMAGE_PANEL_KEY = '-weapon-damage-panel-'
+DICE_NUMBER_KEY = '-dice-number-'
+DAMAGE_DIE_KEY = '-damage-die-'
+DAMAGE_TYPE_KEY = '-damage-type-'
+PROFICIENCY_KEY = '-proficient-'
+HIT_BONUS_KEY = '-hit-bonus-'
+AVG_HIT_DAMAGE_KEY = '-avg-hit-damage-'
+AVG_DAMAGE_KEY = '-avg-damage-'
+WEAPON_DAMAGE_FRAME_KEY = '-weapon-damage-frame-'
+WEAPON_SUMMARY_KEY = '-weapon-damage-summary-'
+SPLIT_PLATINUM_INPUT_KEY = '-split-platinum-input-'
+SPLIT_GOLD_INPUT_KEY = '-split-gold-input-'
+SPLIT_ELECTRUM_INPUT_KEY = '-split-electrum-input-'
+SPLIT_SILVER_INPUT_KEY = '-split-silver-input-'
+SPLIT_COPPER_INPUT_KEY = '-split-copper-input-'
+SPLIT_CONSOLIDATE_CURRENCY_KEY = '-split-consolidate-currency-'
+PARTY_SIZE_KEY = '-party-size-'
+SPLIT_PLATINUM_USED_KEY = '-split-platinum-used-'
+SPLIT_GOLD_USED_KEY = '-split-gold-used-'
+SPLIT_ELECTRUM_USED_KEY = '-split-electrum-used-'
+SPLIT_SILVER_USED_KEY = '-split-silver-used-'
+SPLIT_COPPER_USED_KEY = '-split-copper-used-'
+SPLIT_CURRENCIES_USED_PANEL = 'split-currencies-col-'
+SPLIT_CURRENCY_RESULTS_KEY = '-split-currency-results-'
+MATH_PLATINUM_INPUT_1_KEY = '-math-platinum-input-1-'
+MATH_GOLD_INPUT_1_KEY = '-math-gold-input-1-'
+MATH_ELECTRUM_INPUT_1_KEY = '-math-electrum-input-1-'
+MATH_SILVER_INPUT_1_KEY = '-math-silver-input-1-'
+MATH_COPPER_INPUT_1_KEY = '-math-copper-input-1-'
+MATH_PLATINUM_INPUT_2_KEY = '-math-platinum-input-2-'
+MATH_GOLD_INPUT_2_KEY = '-math-gold-input-2-'
+MATH_ELECTRUM_INPUT_2_KEY = '-math-electrum-input-2-'
+MATH_SILVER_INPUT_2_KEY = '-math-silver-input-2-'
+MATH_COPPER_INPUT_2_KEY = '-math-copper-input-2-'
+MATH_CONSOLIDATE_CURRENCY_KEY = '-math-consolidate-currency-'
+MATH_PLATINUM_USED_KEY = '-math-platinum-used-'
+MATH_GOLD_USED_KEY = '-math-gold-used-'
+MATH_ELECTRUM_USED_KEY = '-math-electrum-used-'
+MATH_SILVER_USED_KEY = '-math-silver-used-'
+MATH_COPPER_USED_KEY = '-math-copper-used-'
+MATH_CURRENCIES_USED_PANEL = 'math-currencies-col-'
+MATH_CURRENCY_RESULTS_KEY = '-math-currency-results-'
 SCREEN_NAMES = ['Combat', 'Currency']
+#endregion
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
     CHARACTER_DAMAGE_MOD_KEY, TARGET_AC_KEY, WEAPON_TYPE_KEY, WEAPON_BONUS_KEY,
@@ -52,6 +86,7 @@ def main():
         if (not first_read):
             first_read = True
             init_combat_panel(window, values)
+            init_currency_panel(window, values)
         if event == sg.WINDOW_CLOSED or event == EXIT_BUTTON_KEY:
             break
         if event == NAV_COMBO_KEY:
@@ -80,6 +115,41 @@ def main():
                 else:
                     update_index = int(splits[len(splits)-1])
                 update_weapon_attack(window, values, update_index)
+        if event in [SPLIT_PLATINUM_INPUT_KEY, SPLIT_GOLD_INPUT_KEY, SPLIT_ELECTRUM_INPUT_KEY, SPLIT_SILVER_INPUT_KEY, SPLIT_COPPER_INPUT_KEY]:
+            # Input validation
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event])>= int(1e9):
+                window[event].update(str(int(1e9)-1))
+            split_currency(window, values)
+        if event in [SPLIT_PLATINUM_USED_KEY, SPLIT_GOLD_USED_KEY, SPLIT_ELECTRUM_USED_KEY, SPLIT_SILVER_USED_KEY, SPLIT_COPPER_USED_KEY, SPLIT_CONSOLIDATE_CURRENCY_KEY]:
+            split_currency(window, values)
+            if (event == SPLIT_CONSOLIDATE_CURRENCY_KEY):
+                window[SPLIT_CURRENCIES_USED_PANEL].update(visible=values[event])
+        if event == PARTY_SIZE_KEY:
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event]) > int(20):
+                window[event].update(str(int(20)))
+            split_currency(window, values)
+        if event in [MATH_PLATINUM_INPUT_1_KEY, MATH_GOLD_INPUT_1_KEY, MATH_ELECTRUM_INPUT_1_KEY, MATH_SILVER_INPUT_1_KEY, MATH_COPPER_INPUT_1_KEY,
+                        MATH_PLATINUM_INPUT_2_KEY, MATH_GOLD_INPUT_2_KEY, MATH_ELECTRUM_INPUT_2_KEY, MATH_SILVER_INPUT_2_KEY, MATH_COPPER_INPUT_2_KEY]:
+            # Input validation
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event])>= int(1e9):
+                window[event].update(str(int(1e9)-1))
+            add_currency(window, values)
+        if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY, MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY]:
+            add_currency(window, values)
+            if (event == MATH_CONSOLIDATE_CURRENCY_KEY):
+                window[MATH_CURRENCIES_USED_PANEL].update(visible=values[event])
     
     window.close()
     
@@ -197,23 +267,132 @@ def combat_weapon_result_panel(parent_index: int) -> sg.Column:
 
 #region Currency Screen
 def currency_panel(visible: bool = False) -> sg.Column:
+    tabs = [[currency_split_panel(), currency_math_panel()]]
+    layout = [[sg.TabGroup(layout=tabs, tab_location='top', border_width=0)]]
+    return sg.Column(layout, key=CURRENCY_SCREEN_KEY, visible=visible, element_justification='center')
+
+def currency_split_panel() -> sg.Tab:
     layout = [
-        [sg.Text('Currency')]
+        [
+            sg.Text('Platinum'),
+            sg.Input(key=SPLIT_PLATINUM_INPUT_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Gold'),
+            sg.Input(key=SPLIT_GOLD_INPUT_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Electrum'),
+            sg.Input(key=SPLIT_ELECTRUM_INPUT_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Silver'),
+            sg.Input(key=SPLIT_SILVER_INPUT_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Copper'),
+            sg.Input(key=SPLIT_COPPER_INPUT_KEY, default_text=0, enable_events=True, size=(10,1)),
+        ],
+        [
+            sg.Text('Party size:'),
+            sg.Input(default_text='1', size=(5,1), key=PARTY_SIZE_KEY, enable_events=True)
+        ],
+        [
+            sg.Text('Consolidate currency?'),
+            sg.Checkbox('', default=True, key=SPLIT_CONSOLIDATE_CURRENCY_KEY, enable_events=True)
+        ],
+        [
+            sg.pin(sg.Column(layout=[
+                [
+                    sg.Text('Platinum'),
+                    sg.Checkbox('', default=False, key=SPLIT_PLATINUM_USED_KEY, enable_events=True),
+                    sg.Text('Gold'),
+                    sg.Checkbox('', default=True, key=SPLIT_GOLD_USED_KEY, enable_events=True),
+                    sg.Text('Electrum'),
+                    sg.Checkbox('', default=False, key=SPLIT_ELECTRUM_USED_KEY, enable_events=True),
+                    sg.Text('Silver'),
+                    sg.Checkbox('', default=True, key=SPLIT_SILVER_USED_KEY, enable_events=True),
+                    sg.Text('Copper'),
+                    sg.Checkbox('', default=True, key=SPLIT_COPPER_USED_KEY, enable_events=True, disabled=True)
+                ],
+            ], key=SPLIT_CURRENCIES_USED_PANEL)),
+        ],
+        [
+            sg.HorizontalSeparator()
+        ],
+        [
+            sg.Text('Results', font='any 10 bold'),
+        ],
+        [
+            sg.Text('', key=SPLIT_CURRENCY_RESULTS_KEY, size=(20,1), justification='center')
+        ]
     ]
 
-    return sg.Column(layout, key=CURRENCY_SCREEN_KEY, visible=visible)
+    return sg.Tab('Split', layout=layout, element_justification='center')
+
+def currency_math_panel() -> sg.Tab:
+    layout = [
+        [
+            sg.Text('Platinum'),
+            sg.Input(key=MATH_PLATINUM_INPUT_1_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Gold'),
+            sg.Input(key=MATH_GOLD_INPUT_1_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Electrum'),
+            sg.Input(key=MATH_ELECTRUM_INPUT_1_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Silver'),
+            sg.Input(key=MATH_SILVER_INPUT_1_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Copper'),
+            sg.Input(key=MATH_COPPER_INPUT_1_KEY, default_text=0, enable_events=True, size=(10,1)),
+        ],
+        [
+            sg.Text('Platinum'),
+            sg.Input(key=MATH_PLATINUM_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Gold'),
+            sg.Input(key=MATH_GOLD_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Electrum'),
+            sg.Input(key=MATH_ELECTRUM_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Silver'),
+            sg.Input(key=MATH_SILVER_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
+            sg.Text('Copper'),
+            sg.Input(key=MATH_COPPER_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
+        ],
+        [
+            sg.Text('Consolidate currency?'),
+            sg.Checkbox('', default=False, key=MATH_CONSOLIDATE_CURRENCY_KEY, enable_events=True)
+        ],
+        [
+            sg.pin(sg.Column(layout=[
+                [
+                    sg.Text('Platinum'),
+                    sg.Checkbox('', default=False, key=MATH_PLATINUM_USED_KEY, enable_events=True),
+                    sg.Text('Gold'),
+                    sg.Checkbox('', default=True, key=MATH_GOLD_USED_KEY, enable_events=True),
+                    sg.Text('Electrum'),
+                    sg.Checkbox('', default=False, key=MATH_ELECTRUM_USED_KEY, enable_events=True),
+                    sg.Text('Silver'),
+                    sg.Checkbox('', default=True, key=MATH_SILVER_USED_KEY, enable_events=True),
+                    sg.Text('Copper'),
+                    sg.Checkbox('', default=True, key=MATH_COPPER_USED_KEY, enable_events=True, disabled=True)
+                ],
+            ], key=MATH_CURRENCIES_USED_PANEL, visible=False)),
+        ],
+        [
+            sg.HorizontalSeparator()
+        ],
+        [
+            sg.Text('Results', font='any 10 bold'),
+        ],
+        [
+            sg.Text('', key=MATH_CURRENCY_RESULTS_KEY, size=(20,1), justification='center')
+        ]
+    ]
+
+    return sg.Tab('Math', layout=layout, element_justification='center')
 
 #endregion
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
     if ((0 <= old_layout < len(SCREEN_NAMES)) and (0 <= new_layout < len(SCREEN_NAMES)) and old_layout != new_layout):
-        window[f'screen-{old_layout}'].update(visible=False)
-        window[f'screen-{new_layout}'].update(visible=True)
+        window[f'-screen-{old_layout}-'].update(visible=False)
+        window[f'-screen-{new_layout}-'].update(visible=True)
         return new_layout
     else:
         return old_layout
 
 #endregion
 
+#region Combat Screen Functions
 def add_weapon_damage(window: sg.Window, parent_index: int):
     # Find first hidden panel
     window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].update(visible=True)
@@ -310,6 +489,74 @@ def update_weapon_summary(window, values):
 def init_combat_panel(window: sg.Window, values: dict):
     for update_index in range(1,3):
         update_weapon_attack(window, values, update_index)
+
+#endregion
+
+#region Currency Screen Functions
+def split_currency(window:sg.Window, values:dict):
+    currency = Currency(
+        int(values[SPLIT_PLATINUM_INPUT_KEY]),
+        int(values[SPLIT_GOLD_INPUT_KEY]),
+        int(values[SPLIT_ELECTRUM_INPUT_KEY]),
+        int(values[SPLIT_SILVER_INPUT_KEY]),
+        int(values[SPLIT_COPPER_INPUT_KEY]))
+    party_size = int(values[PARTY_SIZE_KEY])
+    consolidate = values[SPLIT_CONSOLIDATE_CURRENCY_KEY]
+    currencies_used = CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.SILVER if values[SPLIT_SILVER_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.ELECTRUM if values[SPLIT_ELECTRUM_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.GOLD if values[SPLIT_GOLD_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.PLATINUM if values[SPLIT_PLATINUM_USED_KEY] else CurrencyOptions.COPPER
+    results = currency.split(party_size, consolidate, currencies_used)
+    if (len(results) <= 1):
+        output = str(results[0])
+        num_rows = 1
+    else:
+        counts = {}
+        for result in results:
+            result_str = str(result)
+            if result_str in counts:
+                counts[result_str] += 1
+            else:
+                counts[result_str] = 1
+        output = ''
+        for curr, count in counts.items():
+            output += f'{count}x {curr}\n'
+        output.strip()
+        num_rows = len(counts)
+    window[SPLIT_CURRENCY_RESULTS_KEY].update(output)
+    window[SPLIT_CURRENCY_RESULTS_KEY].set_size((None, num_rows))
+
+def add_currency(window:sg.Window, values:dict):
+    currency1 = Currency(
+        int(values[MATH_PLATINUM_INPUT_1_KEY]),
+        int(values[MATH_GOLD_INPUT_1_KEY]),
+        int(values[MATH_ELECTRUM_INPUT_1_KEY]),
+        int(values[MATH_SILVER_INPUT_1_KEY]),
+        int(values[MATH_COPPER_INPUT_1_KEY]))
+    currency2 = Currency(
+        int(values[MATH_PLATINUM_INPUT_2_KEY]),
+        int(values[MATH_GOLD_INPUT_2_KEY]),
+        int(values[MATH_ELECTRUM_INPUT_2_KEY]),
+        int(values[MATH_SILVER_INPUT_2_KEY]),
+        int(values[MATH_COPPER_INPUT_2_KEY]))
+    consolidate = values[MATH_CONSOLIDATE_CURRENCY_KEY]
+    currencies_used = CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.SILVER if values[MATH_SILVER_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.ELECTRUM if values[MATH_ELECTRUM_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.GOLD if values[MATH_GOLD_USED_KEY] else CurrencyOptions.COPPER
+    currencies_used |= CurrencyOptions.PLATINUM if values[MATH_PLATINUM_USED_KEY] else CurrencyOptions.COPPER
+
+    result = currency1 + currency2
+    if consolidate:
+        result = result.consolidate(currencies_used)
+    window[MATH_CURRENCY_RESULTS_KEY].update(str(result))
+
+def init_currency_panel(window: sg.Window, values: dict):
+    split_currency(window, values)
+    add_currency(window, values)
+
+#endregion
 
 if __name__ == "__main__":
     main()
