@@ -1,7 +1,5 @@
-from enum import auto
 from currency import Currency, CurrencyOptions
 import PySimpleGUI as sg
-from PySimpleGUI.PySimpleGUI import Checkbox, HorizontalSeparator, VerticalSeparator
 from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
 
 #region GUI Constants
@@ -61,6 +59,7 @@ MATH_SILVER_USED_KEY = '-math-silver-used-'
 MATH_COPPER_USED_KEY = '-math-copper-used-'
 MATH_CURRENCIES_USED_PANEL = 'math-currencies-col-'
 MATH_CURRENCY_RESULTS_KEY = '-math-currency-results-'
+MATH_OPERATION_KEY = '-math-operation-'
 SCREEN_NAMES = ['Combat', 'Currency']
 #endregion
 
@@ -146,7 +145,7 @@ def main():
             if int(values[event])>= int(1e9):
                 window[event].update(str(int(1e9)-1))
             add_currency(window, values)
-        if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY, MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY]:
+        if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY, MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY, MATH_OPERATION_KEY]:
             add_currency(window, values)
             if (event == MATH_CONSOLIDATE_CURRENCY_KEY):
                 window[MATH_CURRENCIES_USED_PANEL].update(visible=values[event])
@@ -349,6 +348,10 @@ def currency_math_panel() -> sg.Tab:
             sg.Input(key=MATH_COPPER_INPUT_2_KEY, default_text=0, enable_events=True, size=(10,1)),
         ],
         [
+            sg.Text('Add values?'),
+            sg.Checkbox('', default=True, key=MATH_OPERATION_KEY, enable_events=True)
+        ],
+        [
             sg.Text('Consolidate currency?'),
             sg.Checkbox('', default=False, key=MATH_CONSOLIDATE_CURRENCY_KEY, enable_events=True)
         ],
@@ -540,6 +543,7 @@ def add_currency(window:sg.Window, values:dict):
         int(values[MATH_ELECTRUM_INPUT_2_KEY]),
         int(values[MATH_SILVER_INPUT_2_KEY]),
         int(values[MATH_COPPER_INPUT_2_KEY]))
+    addition = values[MATH_OPERATION_KEY]
     consolidate = values[MATH_CONSOLIDATE_CURRENCY_KEY]
     currencies_used = CurrencyOptions.COPPER
     currencies_used |= CurrencyOptions.SILVER if values[MATH_SILVER_USED_KEY] else CurrencyOptions.COPPER
@@ -547,7 +551,10 @@ def add_currency(window:sg.Window, values:dict):
     currencies_used |= CurrencyOptions.GOLD if values[MATH_GOLD_USED_KEY] else CurrencyOptions.COPPER
     currencies_used |= CurrencyOptions.PLATINUM if values[MATH_PLATINUM_USED_KEY] else CurrencyOptions.COPPER
 
-    result = currency1 + currency2
+    if (addition):
+        result = currency1 + currency2
+    else:
+        result = currency1 - currency2
     if consolidate:
         result = result.consolidate(currencies_used)
     window[MATH_CURRENCY_RESULTS_KEY].update(str(result))

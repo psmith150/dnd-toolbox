@@ -49,6 +49,33 @@ class CurrencyTestCase(TestCase):
         cur2 = Currency(6, 7, 8, 9, 10)
         self.assertEqual(Currency(7, 9, 11, 13, 15), cur1+cur2)
     
+    def test_add_wrong_type(self):
+        cur1 = Currency(1, 2, 3, 4, 5)
+        self.assertRaises(TypeError, cur1.__add__(1))
+    
+    def test_sub(self):
+        cur1 = Currency(6, 7, 8, 9, 10)
+        cur2 = Currency(1, 1, 1, 1, 1)
+        self.assertEqual(Currency(5, 6, 7, 8, 9), cur1-cur2)
+    
+    def test_sub_borrow(self):
+        cur1 = Currency(1, 1, 1, 1, 1)
+        cur2 = Currency(0, 2, 0, 0, 0)
+        self.assertEqual(Currency(0, 9, 1, 1, 1), cur1-cur2)
+    
+    def test_sub_wrong_type(self):
+        cur1 = Currency(1, 2, 3, 4, 5)
+        self.assertRaises(TypeError, cur1.__sub__(1))
+    
+    def test_mul(self):
+        cur = Currency(1, 2, 3, 4, 5)
+        self.assertEqual(Currency(2, 4, 6, 8, 10), cur * 2)
+    
+    def test_mul_wrong_type(self):
+        cur1 = Currency(1, 2, 3, 4, 5)
+        cur2 = Currency(1, 1, 1, 1, 1)
+        self.assertRaises(TypeError, cur1.__mul__(cur2))
+    
     def test_to_copper(self):
         cur1 = Currency(1, 2, 3, 4, 5)
         self.assertEqual(cur1.to_copper(), 1395)

@@ -56,6 +56,21 @@ class Currency():
                 self.silver + o.silver,
                 self.copper + o.copper)
     
+    def __sub__(self, o:object) -> Currency:
+        if (not isinstance(o,Currency)):
+            return NotImplemented
+        result = self.to_copper() - o.to_copper()
+        return Currency(copper=result).consolidate(currencies=CurrencyOptions.ALL)
+    
+    def __mul__(self, o:object) -> Currency:
+        if (not (isinstance(o, int) or isinstance(o, float))):
+            return NotImplemented
+        return Currency(self.platinum * o,
+                self.gold * o,
+                self.electrum * o,
+                self.silver * o,
+                self.copper * o)
+    
     def to_copper(self) -> int:
         return self.platinum * 1000 + self.gold * 100 + self.electrum * 50 + self.silver * 10 + self.copper
     
