@@ -5,9 +5,12 @@ from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
 
 # GUI Constants
 THEME = 'Dark Grey 13'
+COMBAT_SCREEN_KEY = 'screen-0'
+CURRENCY_SCREEN_KEY = 'screen-1'
 WEAPON_TYPE_KEY = 'weapon-type'
 WEAPON_BONUS_KEY = 'weapon-bonus'
 EXIT_BUTTON_KEY = 'exit'
+NAV_COMBO_KEY = 'nav'
 CHARACTER_LEVEL_KEY = 'character-level'
 CHARACTER_ATTACK_STAT_KEY = 'character-attack-stat'
 CHARACTER_DAMAGE_MOD_KEY = 'character-damage-mod'
@@ -25,6 +28,7 @@ AVG_HIT_DAMAGE_KEY = 'avg-hit-damage'
 AVG_DAMAGE_KEY = 'avg-damage'
 WEAPON_DAMAGE_FRAME_KEY = 'weapon-damage-frame'
 WEAPON_SUMMARY_KEY = 'weapon-damage-summary'
+SCREEN_NAMES = ['Combat', 'Currency']
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
     CHARACTER_DAMAGE_MOD_KEY, TARGET_AC_KEY, WEAPON_TYPE_KEY, WEAPON_BONUS_KEY,
@@ -36,6 +40,7 @@ NUM_DAMAGE_PANELS = 3
 def main():
     sg.theme(THEME)
     window = main_window()
+    active_layout = 0
     first_read = False
 
     while True:
@@ -49,6 +54,12 @@ def main():
             init_combat_panel(window, values)
         if event == sg.WINDOW_CLOSED or event == EXIT_BUTTON_KEY:
             break
+        if event == NAV_COMBO_KEY:
+            try:
+                new_layout = SCREEN_NAMES.index(values[NAV_COMBO_KEY])
+                active_layout = change_screen(window, active_layout, new_layout)
+            except ValueError:
+                window[NAV_COMBO_KEY].update(value=SCREEN_NAMES[active_layout])
         if ADD_WEAPON_DAMAGE_BUTTON_KEY in event:
             add_index = int(event.replace(ADD_WEAPON_DAMAGE_BUTTON_KEY,'')[1:])
             add_weapon_damage(window, add_index)
@@ -75,26 +86,28 @@ def main():
 
 def main_window() -> sg.Window:
     layout = [
-        [sg.Text("Nav placeholder")],
-        [combat_panel()],
+        [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat', size=(20,1))],
+        [combat_panel(True), currency_panel(False)],
         [sg.Exit(key=EXIT_BUTTON_KEY)]
     ]
 
     return sg.Window("D&D Toolbox", layout=layout, element_justification='center')
 
-def combat_panel() -> sg.Column:
+#region GUI Elements
+#region Combat Screen
+def combat_panel(visible: bool = False) -> sg.Column:
     layout = [
-        [character_panel()],
-        [weapon_panel(1), weapon_panel(2)],
+        [combat_character_panel()],
+        [combat_weapon_panel(1), combat_weapon_panel(2)],
         [sg.HorizontalSeparator()],
         [sg.Frame('Results', layout=[
-            [weapon_result_panel(1), sg.VerticalSeparator(), weapon_result_panel(2)],
+            [combat_weapon_result_panel(1), sg.VerticalSeparator(), combat_weapon_result_panel(2)],
             [sg.Text('Weapon 2 deals equal damage to Weapon 1',key=WEAPON_SUMMARY_KEY, size=(40,1), justification='center')]])]
     ]
 
-    return sg.Column(layout)
+    return sg.Column(layout, key=COMBAT_SCREEN_KEY, visible=visible)
 
-def character_panel() -> sg.Column:
+def combat_character_panel() -> sg.Column:
     layout = [
         [sg.Text('Character Level:', size=(30, 1), justification='right'),
             sg.Spin([i for i in range(1, 20)], key=CHARACTER_LEVEL_KEY,
@@ -117,7 +130,7 @@ def character_panel() -> sg.Column:
 
     return sg.Column(layout, expand_x=True, element_justification='center')
 
-def weapon_panel(index: int) -> sg.Column:
+def combat_weapon_panel(index: int) -> sg.Column:
     weapon_values = WeaponType.get_values()
     weapon_values.sort()
     layout = [[sg.Frame(f'Weapon {index}', layout=[
@@ -141,7 +154,7 @@ def weapon_panel(index: int) -> sg.Column:
     ]
     damage_panels = []
     for panel in range(NUM_DAMAGE_PANELS):
-        damage_panels.append([weapon_damage_panel(index, panel + 1, False)])
+        damage_panels.append([combat_weapon_damage_panel(index, panel + 1, False)])
     
     layout += [
         [sg.Frame('Additional Damage', damage_panels, key=f'{WEAPON_DAMAGE_FRAME_KEY}-{index}', visible=False)],
@@ -149,7 +162,7 @@ def weapon_panel(index: int) -> sg.Column:
 
     return sg.Column(layout, key=WEAPON_PANEL_KEY + f'-{index}', expand_y=True)
 
-def weapon_damage_panel(parent_index: int, index: int, visible: bool = False) -> sg.Column:
+def combat_weapon_damage_panel(parent_index: int, index: int, visible: bool = False) -> sg.Column:
     layout = [
         [sg.Text('Number of dice:', size=(15,1), justification='left'),
             sg.Spin([i for i in range(0, 20)], initial_value=0,
@@ -169,7 +182,7 @@ def weapon_damage_panel(parent_index: int, index: int, visible: bool = False) ->
     return sg.Column(layout, key=WEAPON_DAMAGE_PANEL_KEY + f"-{parent_index}-{index}",
             visible=visible, size=(291, 78))
 
-def weapon_result_panel(parent_index: int) -> sg.Column:
+def combat_weapon_result_panel(parent_index: int) -> sg.Column:
     layout = [
         [sg.Text('Hit Bonus:', size=(20,1)),
             sg.Text('0', key=f'{HIT_BONUS_KEY}-{parent_index}', size=(10,1))],
@@ -180,6 +193,26 @@ def weapon_result_panel(parent_index: int) -> sg.Column:
     ]
 
     return sg.Column(layout, size=(291, 78), pad=((5, 18), (5,5)))
+#endregion
+
+#region Currency Screen
+def currency_panel(visible: bool = False) -> sg.Column:
+    layout = [
+        [sg.Text('Currency')]
+    ]
+
+    return sg.Column(layout, key=CURRENCY_SCREEN_KEY, visible=visible)
+
+#endregion
+def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
+    if ((0 <= old_layout < len(SCREEN_NAMES)) and (0 <= new_layout < len(SCREEN_NAMES)) and old_layout != new_layout):
+        window[f'screen-{old_layout}'].update(visible=False)
+        window[f'screen-{new_layout}'].update(visible=True)
+        return new_layout
+    else:
+        return old_layout
+
+#endregion
 
 def add_weapon_damage(window: sg.Window, parent_index: int):
     # Find first hidden panel
