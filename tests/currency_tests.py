@@ -56,7 +56,7 @@ class CurrencyTestCase(TestCase):
     def test_sub(self):
         cur1 = Currency(6, 7, 8, 9, 10)
         cur2 = Currency(1, 1, 1, 1, 1)
-        self.assertEqual(Currency(5, 6, 7, 8, 9), cur1-cur2)
+        self.assertEqual(Currency(6, 0, 0, 3, 9), cur1-cur2)
     
     def test_sub_borrow(self):
         cur1 = Currency(1, 1, 1, 1, 1)
