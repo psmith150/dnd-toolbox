@@ -1,11 +1,15 @@
+import enum
 from currency import Currency, CurrencyOptions
 import PySimpleGUI as sg
 from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
+from common import Skill, Tool, AbilitySet, Ability
+from math import ceil, floor
 
 #region GUI Constants
 THEME = 'Dark Grey 13'
 COMBAT_SCREEN_KEY = '-screen-0-'
 CURRENCY_SCREEN_KEY = '-screen-1-'
+DOWNTIME_SCREEN_KEY = '-screen-2-'
 WEAPON_TYPE_KEY = '-weapon-type-'
 WEAPON_BONUS_KEY = '-weapon-bonus-'
 EXIT_BUTTON_KEY = '-exit-'
@@ -60,7 +64,32 @@ MATH_COPPER_USED_KEY = '-math-copper-used-'
 MATH_CURRENCIES_USED_PANEL = 'math-currencies-col-'
 MATH_CURRENCY_RESULTS_KEY = '-math-currency-results-'
 MATH_OPERATION_KEY = '-math-operation-'
-SCREEN_NAMES = ['Combat', 'Currency']
+DOWNTIME_TABS_KEY = '-downtime-tabs-'
+DOWNTIME_LANGUAGE_TAB_KEY = '-downtime-language-tab-'
+DOWNTIME_SKILL_TAB_KEY = '-downtime-skill-tab-'
+DOWNTIME_TOOL_TAB_KEY = '-downtime-tool-tab-'
+DOWNTIME_WEAPON_TAB_KEY = '-downtime-weapon-tab-'
+DOWNTIME_ARMOR_TAB_KEY = '-downtime-armor-tab-'
+DOWNTIME_STRENGTH_INPUT_KEY = '-downtime-strength-'
+DOWNTIME_DEXTERITY_INPUT_KEY = '-downtime-dexterity-'
+DOWNTIME_CONSTITUTION_INPUT_KEY = '-downtime-constitution-'
+DOWNTIME_INTELLIGENCE_INPUT_KEY = '-downtime-intelligence-'
+DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY = '-downtime-prof-bonus-'
+DOWNTIME_WISDOM_INPUT_KEY = '-downtime-wisdom-'
+DOWNTIME_CHARISMA_INPUT_KEY = '-downtime-charisma-'
+DOWNTIME_CATEGORY_INPUT_KEY = '-downtime-category-'
+DOWNTIME_SKILL_INPUT_KEY = '-downtime-skill-'
+DOWNTIME_TOOL_INPUT_KEY = '-downtime-tool-'
+DOWNTIME_TOOL_SKILL_PANEL_KEYS = [f'-downtime-tool-skill-col-{x}' for x in range(0, len(Skill))]
+DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS = [f'-downtime-tool-skill-prof-{x}' for x in range(0, len(Skill))]
+DOWNTIME_TOOL_SKILL_BONUS_KEYS = [f'-downtime-tool-skill-bonus-{x}' for x in range(0, len(Skill))]
+DOWNTIME_WEAPON_STRENGTH_KEY = '-downtime-weapon-strength-'
+DOWNTIME_WEAPON_DEXTERITY_KEY = '-downtime-weapon-dexterity-'
+DOWNTIME_ARMOR_LIGHT_KEY = '-downtime-armor-light-'
+DOWNTIME_ARMOR_MEDIUM_KEY = '-downtime-armor-medium-'
+DOWNTIME_ARMOR_HEAVY_KEY = '-downtime-armor-heavy-'
+DOWNTIME_RESULT_KEY = '-downtime-result-'
+SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training']
 #endregion
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
@@ -69,6 +98,8 @@ DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
     REMOVE_WEAPON_DAMAGE_BUTTON_KEY, ADD_WEAPON_DAMAGE_BUTTON_KEY]
 
 NUM_DAMAGE_PANELS = 3
+
+BASE_DOWNTIME_DAYS = 250
 
 def main():
     sg.theme(THEME)
@@ -86,20 +117,25 @@ def main():
             first_read = True
             init_combat_panel(window, values)
             init_currency_panel(window, values)
+            init_downtime_panel(window, values)
         if event == sg.WINDOW_CLOSED or event == EXIT_BUTTON_KEY:
             break
+
         if event == NAV_COMBO_KEY:
             try:
                 new_layout = SCREEN_NAMES.index(values[NAV_COMBO_KEY])
                 active_layout = change_screen(window, active_layout, new_layout)
             except ValueError:
                 window[NAV_COMBO_KEY].update(value=SCREEN_NAMES[active_layout])
+
         if ADD_WEAPON_DAMAGE_BUTTON_KEY in event:
             add_index = int(event.replace(ADD_WEAPON_DAMAGE_BUTTON_KEY,'')[1:])
             add_weapon_damage(window, add_index)
+
         if REMOVE_WEAPON_DAMAGE_BUTTON_KEY in event:
             remove_index = int(event.replace(REMOVE_WEAPON_DAMAGE_BUTTON_KEY,'')[1:])
             remove_weapon_damage(window, remove_index)
+
         if any(key in event for key in DAMAGE_CALCULATION_EVENTS):
             global_events = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
                                 CHARACTER_DAMAGE_MOD_KEY, TARGET_AC_KEY]
@@ -114,27 +150,35 @@ def main():
                 else:
                     update_index = int(splits[len(splits)-1])
                 update_weapon_attack(window, values, update_index)
+
         if event in [SPLIT_PLATINUM_INPUT_KEY, SPLIT_GOLD_INPUT_KEY, SPLIT_ELECTRUM_INPUT_KEY, SPLIT_SILVER_INPUT_KEY, SPLIT_COPPER_INPUT_KEY]:
             # Input validation
             if len(values[event]) == 0:
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
-            if int(values[event])>= int(1e9):
+            if int(values[event]) >= int(1e9):
                 window[event].update(str(int(1e9)-1))
+            if int(values[event]) < 0:
+                window[event].update(str(0))
             split_currency(window, values)
+        
         if event in [SPLIT_PLATINUM_USED_KEY, SPLIT_GOLD_USED_KEY, SPLIT_ELECTRUM_USED_KEY, SPLIT_SILVER_USED_KEY, SPLIT_COPPER_USED_KEY, SPLIT_CONSOLIDATE_CURRENCY_KEY]:
             split_currency(window, values)
             if (event == SPLIT_CONSOLIDATE_CURRENCY_KEY):
                 window[SPLIT_CURRENCIES_USED_PANEL].update(visible=values[event])
+        
         if event == PARTY_SIZE_KEY:
             if len(values[event]) == 0:
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
-            if int(values[event]) > int(20):
-                window[event].update(str(int(20)))
+            if int(values[event]) > 20:
+                window[event].update(str(20))
+            if int(values[event]) < 1:
+                window[event].update(str(1))
             split_currency(window, values)
+        
         if event in [MATH_PLATINUM_INPUT_1_KEY, MATH_GOLD_INPUT_1_KEY, MATH_ELECTRUM_INPUT_1_KEY, MATH_SILVER_INPUT_1_KEY, MATH_COPPER_INPUT_1_KEY,
                         MATH_PLATINUM_INPUT_2_KEY, MATH_GOLD_INPUT_2_KEY, MATH_ELECTRUM_INPUT_2_KEY, MATH_SILVER_INPUT_2_KEY, MATH_COPPER_INPUT_2_KEY]:
             # Input validation
@@ -142,13 +186,73 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
-            if int(values[event])>= int(1e9):
+            if int(values[event]) >= int(1e9):
                 window[event].update(str(int(1e9)-1))
+            if int(values[event]) < 0:
+                window[event].update(str(0))
             add_currency(window, values)
+        
         if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY, MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY, MATH_OPERATION_KEY]:
             add_currency(window, values)
             if (event == MATH_CONSOLIDATE_CURRENCY_KEY):
                 window[MATH_CURRENCIES_USED_PANEL].update(visible=values[event])
+        
+        if event == DOWNTIME_TABS_KEY:
+            init_active_downtime_panel(window, values)
+        
+        if event in [DOWNTIME_STRENGTH_INPUT_KEY, DOWNTIME_DEXTERITY_INPUT_KEY, DOWNTIME_CONSTITUTION_INPUT_KEY,
+                        DOWNTIME_INTELLIGENCE_INPUT_KEY, DOWNTIME_WISDOM_INPUT_KEY, DOWNTIME_CHARISMA_INPUT_KEY]:
+            # Input validation
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event]) > 30:
+                window[event].update(str(int(30)))
+            if int(values[event]) < 1:
+                window[event].update(str(1))
+            init_active_downtime_panel(window, values)
+        
+        if event == DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY:
+            # Input validation
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event]) > 6:
+                window[event].update(str(6))
+            if int(values[event]) < 2:
+                window[event].update(str(2))
+            calculate_tool_training(window, values)
+        
+        if event == DOWNTIME_SKILL_INPUT_KEY:
+            calculate_skill_training(window, values)
+        
+        if event == DOWNTIME_TOOL_INPUT_KEY:
+            show_tool_skills(window, values)
+            calculate_tool_training(window, values)
+        
+        if event in DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS:
+            calculate_tool_training(window, values)
+        
+        if event in DOWNTIME_TOOL_SKILL_BONUS_KEYS:
+            # Input validation
+            if len(values[event]) == 0:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+            if int(values[event]) > 20:
+                window[event].update(str(20))
+            if int(values[event]) < 0:
+                window[event].update(0)
+            calculate_tool_training(window, values)
+        
+        if event in [DOWNTIME_WEAPON_STRENGTH_KEY, DOWNTIME_WEAPON_DEXTERITY_KEY]:
+            calculate_weapon_training(window, values)
+        
+        if event in [DOWNTIME_ARMOR_LIGHT_KEY, DOWNTIME_ARMOR_MEDIUM_KEY, DOWNTIME_ARMOR_HEAVY_KEY]:
+            calculate_armor_training(window, values)
+            
     
     window.close()
     
@@ -156,7 +260,7 @@ def main():
 def main_window() -> sg.Window:
     layout = [
         [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat', size=(20,1))],
-        [combat_panel(True), currency_panel(False)],
+        [combat_panel(True), currency_panel(False), downtime_panel(False)],
         [sg.Exit(key=EXIT_BUTTON_KEY)]
     ]
 
@@ -385,6 +489,107 @@ def currency_math_panel() -> sg.Tab:
     return sg.Tab('Math', layout=layout, element_justification='center')
 
 #endregion
+
+#region Downtime Training Screen
+def downtime_panel(visible:bool=False) -> sg.Column:
+    tabs = [
+        [
+            downtime_language_panel(),
+            downtime_skill_panel(),
+            downtime_tool_panel(),
+            downtime_weapon_panel(),
+            downtime_armor_panel(),
+        ]
+    ]
+    layout = [
+        [sg.Text('Ability Scores')],
+        [
+            sg.Text('Strength'),
+            sg.Input(key=DOWNTIME_STRENGTH_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+            sg.Text('Dexterity'),
+            sg.Input(key=DOWNTIME_DEXTERITY_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+            sg.Text('Constitution'),
+            sg.Input(key=DOWNTIME_CONSTITUTION_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+            sg.Text('Intelligence'),
+            sg.Input(key=DOWNTIME_INTELLIGENCE_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+            sg.Text('Wisdom'),
+            sg.Input(key=DOWNTIME_WISDOM_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+            sg.Text('Charisma'),
+            sg.Input(key=DOWNTIME_CHARISMA_INPUT_KEY, default_text=10, enable_events=True, size=(5,1)),
+        ],
+        [
+            sg.Text('Proficiency Bonus'),
+            sg.Input(key=DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY, default_text=2, enable_events=True, size=(5,1)),
+        ],
+        [sg.TabGroup(layout=tabs, tab_location='top', border_width=0, key=DOWNTIME_TABS_KEY, enable_events=True)],
+        [
+            sg.HorizontalSeparator()
+        ],
+        [
+            sg.Text('Results', font='any 10 bold'),
+        ],
+        [
+            sg.Text('', key=DOWNTIME_RESULT_KEY, size=(40,1), justification='center')
+        ]
+    ]
+    return sg.Column(layout, key=DOWNTIME_SCREEN_KEY, visible=visible, element_justification='center')
+
+def downtime_language_panel() -> sg.Tab:
+    layout = [[]]
+    return sg.Tab('Languages', layout=layout, element_justification='center', key=DOWNTIME_LANGUAGE_TAB_KEY)
+
+def downtime_skill_panel() -> sg.Tab:
+    layout = [
+        [
+            sg.Combo(Skill.get_values(), default_value=Skill.get_display_name(Skill.ACROBATICS),
+                key=DOWNTIME_SKILL_INPUT_KEY, enable_events=True, size=(20,1) )
+        ]
+    ]
+    return sg.Tab('Skills', layout=layout, element_justification='center', key=DOWNTIME_SKILL_TAB_KEY)
+
+def downtime_tool_panel() -> sg.Tab:
+    skill_columns = []
+    for index, (name, member) in enumerate(Skill.__members__.items()):
+        column_layout = [
+            [
+                sg.Text(Skill.get_display_name(member), size=(20,1), justification='right'),
+                sg.Text('Proficient?'),
+                sg.Checkbox('', default=False, key=DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS[index], enable_events=True),
+                sg.Text('Bonus'),
+                sg.Input('0', key=DOWNTIME_TOOL_SKILL_BONUS_KEYS[index], enable_events=True, size=(5,1))
+            ]
+        ]
+        skill_columns.append([sg.pin(sg.Column(layout=column_layout, key=DOWNTIME_TOOL_SKILL_PANEL_KEYS[index], visible=False))])
+    layout = [
+        [
+            sg.Combo(Tool.get_values(), default_value=Tool.get_display_name(Tool.ALCHEMIST),
+                key=DOWNTIME_TOOL_INPUT_KEY, enable_events=True, size=(20,1) )
+        ],
+        *skill_columns
+    ]
+    return sg.Tab('Tools', layout=layout, element_justification='center', key=DOWNTIME_TOOL_TAB_KEY)
+
+def downtime_weapon_panel() -> sg.Tab:
+    layout = [
+        [
+            sg.Radio('Strength', 'Downtime-Weapon-Radio', default=True, key=DOWNTIME_WEAPON_STRENGTH_KEY, enable_events=True),
+            sg.Radio('Dexterity', 'Downtime-Weapon-Radio', key=DOWNTIME_WEAPON_DEXTERITY_KEY ,enable_events=True),
+        ]
+    ]
+    return sg.Tab('Weapons', layout=layout, element_justification='center', key=DOWNTIME_WEAPON_TAB_KEY)
+
+def downtime_armor_panel() -> sg.Tab:
+    layout = [
+        [
+            sg.Radio('Light', 'Downtime-Armor-Radio', default=True, key=DOWNTIME_ARMOR_LIGHT_KEY, enable_events=True),
+            sg.Radio('Medium', 'Downtime-Armor-Radio', key=DOWNTIME_ARMOR_MEDIUM_KEY ,enable_events=True),
+            sg.Radio('Heavy', 'Downtime-Armor-Radio', key=DOWNTIME_ARMOR_HEAVY_KEY ,enable_events=True),
+        ]
+    ]
+    return sg.Tab('Armor', layout=layout, element_justification='center', key=DOWNTIME_ARMOR_TAB_KEY)
+
+#endregion
+
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
     if ((0 <= old_layout < len(SCREEN_NAMES)) and (0 <= new_layout < len(SCREEN_NAMES)) and old_layout != new_layout):
         window[f'-screen-{old_layout}-'].update(visible=False)
@@ -565,5 +770,115 @@ def init_currency_panel(window: sg.Window, values: dict):
 
 #endregion
 
+#region Downtime Training Screen Functions
+def calculate_language_training(window:sg.Window, values:dict):
+    intelligence = int(values[DOWNTIME_INTELLIGENCE_INPUT_KEY])
+    wisdom = int(values[DOWNTIME_WISDOM_INPUT_KEY])
+    charisma = int(values[DOWNTIME_CHARISMA_INPUT_KEY])
+    int_mod = intelligence - 10 if intelligence >= 10 else 0
+    wis_mod = wisdom - 10 if wisdom >= 10 else 0
+    cha_mod = charisma - 10 if charisma >= 10 else 0
+    score = max(int_mod + wis_mod + cha_mod, 1)
+    days = ceil(BASE_DOWNTIME_DAYS / score)
+    window[DOWNTIME_RESULT_KEY].update(f'{days} days.')
+    window[DOWNTIME_RESULT_KEY].set_size((None, 1))
+
+def calculate_skill_training(window:sg.Window, values:dict):
+    skill = Skill.convert_display_name(values[DOWNTIME_SKILL_INPUT_KEY])
+    ability = skill.ability()
+    ability_score = get_ability_score(values, ability)
+    ability_score = max(ability_score, 1)
+    base_days = ceil(BASE_DOWNTIME_DAYS / ability_score)
+    expert_days = ceil(2 * BASE_DOWNTIME_DAYS / ability_score)
+    window[DOWNTIME_RESULT_KEY].update(f'Proficient in {base_days} days.\nExpertise in an additional {expert_days} days.')
+    window[DOWNTIME_RESULT_KEY].set_size((None, 2))
+
+def calculate_tool_training(window:sg.Window, values:dict):
+    tool = Tool.convert_display_name(values[DOWNTIME_TOOL_INPUT_KEY])
+    total = 0
+    related_skills = tool.skills()
+    for index, (name, member) in enumerate(Skill.__members__.items()):
+        if member in related_skills:
+            ability_mod = floor((get_ability_score(values, member.ability()) - 10) / 2)
+            proficiency_bonus = int(values[DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY]) if values[DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS[index]] else 0
+            bonus = int(values[DOWNTIME_TOOL_SKILL_BONUS_KEYS[index]])
+            total += ability_mod + proficiency_bonus + bonus
+    score = total / len(tool.skills()) + 10
+    base_days = ceil(BASE_DOWNTIME_DAYS / score)
+    expert_days = ceil(2 * BASE_DOWNTIME_DAYS / score)
+    window[DOWNTIME_RESULT_KEY].update(f'Proficient in {base_days} days.\nExpertise in an additional {expert_days} days.')
+    window[DOWNTIME_RESULT_KEY].set_size((None, 2))
+
+def calculate_weapon_training(window:sg.Window, values:dict):
+    if bool(values[DOWNTIME_WEAPON_STRENGTH_KEY]):
+        ability_score = get_ability_score(values, Ability.STRENGTH)
+    elif bool(values[DOWNTIME_WEAPON_DEXTERITY_KEY]):
+        ability_score = get_ability_score(values, Ability.DEXTERITY)
+    else:
+        window[DOWNTIME_RESULT_KEY].update('Invalid selection.')
+        return
+    ability_score = max(ability_score, 1)
+    days = ceil(BASE_DOWNTIME_DAYS / ability_score)
+    window[DOWNTIME_RESULT_KEY].update(f'{days} days.')
+    window[DOWNTIME_RESULT_KEY].set_size((None, 1))
+
+def calculate_armor_training(window:sg.Window, values:dict):
+    if bool(values[DOWNTIME_ARMOR_LIGHT_KEY]):
+        ability_score = get_ability_score(values, Ability.DEXTERITY)
+    elif bool(values[DOWNTIME_ARMOR_MEDIUM_KEY]):
+        ability_score = get_ability_score(values, Ability.STRENGTH)
+    elif bool(values[DOWNTIME_ARMOR_HEAVY_KEY]):
+        ability_score = get_ability_score(values, Ability.STRENGTH)
+    else:
+        window[DOWNTIME_RESULT_KEY].update('Invalid selection.')
+        return
+    ability_score = max(ability_score, 1)
+    days = ceil(BASE_DOWNTIME_DAYS / ability_score)
+    window[DOWNTIME_RESULT_KEY].update(f'{days} days.')
+    window[DOWNTIME_RESULT_KEY].set_size((None, 1))
+
+def init_downtime_panel(window: sg.Window, values: dict):
+    calculate_language_training(window, values)
+
+def init_active_downtime_panel(window: sg.Window, values: dict):
+    downtime_tab = values[DOWNTIME_TABS_KEY]
+    if downtime_tab == DOWNTIME_LANGUAGE_TAB_KEY:
+        calculate_language_training(window, values)
+    elif downtime_tab == DOWNTIME_SKILL_TAB_KEY:
+        calculate_skill_training(window, values)
+    elif downtime_tab == DOWNTIME_TOOL_TAB_KEY:
+        calculate_tool_training(window, values)
+    elif downtime_tab == DOWNTIME_WEAPON_TAB_KEY:
+        calculate_weapon_training(window, values)
+    elif downtime_tab == DOWNTIME_ARMOR_TAB_KEY:
+        calculate_armor_training(window, values)
+    show_tool_skills(window, values)
+
+def get_ability_score(values: dict, ability: Ability) -> int:
+    map = {
+        Ability.STRENGTH: int(values[DOWNTIME_STRENGTH_INPUT_KEY]),
+        Ability.DEXTERITY: int(values[DOWNTIME_DEXTERITY_INPUT_KEY]),
+        Ability.CONSTITUTION: int(values[DOWNTIME_CONSTITUTION_INPUT_KEY]),
+        Ability.INTELLIGENCE: int(values[DOWNTIME_INTELLIGENCE_INPUT_KEY]),
+        Ability.WISDOM: int(values[DOWNTIME_WISDOM_INPUT_KEY]),
+        Ability.CHARISMA: int(values[DOWNTIME_CHARISMA_INPUT_KEY]),
+    }
+    return map[ability]
+
+def show_tool_skills(window: sg.Window, values: dict):
+    if values[DOWNTIME_TABS_KEY] != DOWNTIME_TOOL_TAB_KEY:
+        for index in range(len(Skill)):
+            window[DOWNTIME_TOOL_SKILL_PANEL_KEYS[index]].update(visible=False)
+        return
+    tool = Tool.convert_display_name(values[DOWNTIME_TOOL_INPUT_KEY])
+    related_skills = tool.skills()
+    for index, (name, member) in enumerate(Skill.__members__.items()):
+        if member in related_skills:
+            window[DOWNTIME_TOOL_SKILL_PANEL_KEYS[index]].update(visible=True)
+        else:
+            window[DOWNTIME_TOOL_SKILL_PANEL_KEYS[index]].update(visible=False)
+
+
+#endregion
 if __name__ == "__main__":
     main()
