@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from enum import Enum, auto
 
 class Ability(Enum):
@@ -11,7 +12,7 @@ class Ability(Enum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in Ability.__members__.items():
+        for name, _ in Ability.__members__.items():
             values.append(name.title())
         return values
 
@@ -78,7 +79,7 @@ class Skill(Enum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in Skill.__members__.items():
+        for name, _ in Skill.__members__.items():
             values.append(name.title().replace('_', ' '))
         return values
 
@@ -128,7 +129,7 @@ class Tool(Enum):
     WOODCARVER = auto()
 
     def skills(self) -> Skill:
-        map = {
+        mapping = {
             self.ALCHEMIST: [Skill.ARCANA, Skill.INVESTIGATION],
             self.BREWER: [Skill.HISTORY, Skill.MEDICINE, Skill.PERSUASION],
             self.CALLIGRAPHER: [Skill.ARCANA, Skill.HISTORY],
@@ -156,12 +157,12 @@ class Tool(Enum):
             self.WEAVER: [Skill.ARCANA, Skill.HISTORY, Skill.INVESTIGATION],
             self.WOODCARVER: [Skill.ARCANA, Skill.HISTORY, Skill.NATURE]
         }
-        return map[self]
+        return mapping[self]
     
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in Tool.__members__.items():
+        for name, _ in Tool.__members__.items():
             values.append(name.title().replace('_', ' '))
         return values
 
@@ -198,7 +199,7 @@ class AbilitySet():
     def __getitem__(self, key):
         if not isinstance(key, Ability):
             raise TypeError('Key is not a valid Ability object.')
-        map = {
+        mapping = {
             Ability.STRENGTH: self.strength,
             Ability.DEXTERITY: self.dexterity,
             Ability.CONSTITUTION: self.constitution,
@@ -206,7 +207,7 @@ class AbilitySet():
             Ability.WISDOM: self.wisdom,
             Ability.CHARISMA: self.charisma
         }
-        return map[key]
+        return mapping[key]
     
     def __setitem__(self, key, value):
         if not isinstance(key, Ability):

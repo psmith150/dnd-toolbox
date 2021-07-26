@@ -1,9 +1,10 @@
-import enum
-from currency import Currency, CurrencyOptions
-import PySimpleGUI as sg
-from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
-from common import Skill, Tool, AbilitySet, Ability
+from __future__ import division, absolute_import
 from math import ceil, floor
+import PySimpleGUI as sg
+from .currency import Currency, CurrencyOptions
+from .combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
+from .common import Skill, Tool, Ability
+
 
 #region GUI Constants
 THEME = 'Dark Grey 13'
@@ -108,12 +109,12 @@ def main():
     first_read = False
 
     while True:
-        if (not first_read):
+        if not first_read:
             event, values = window.read(timeout=10)
         else:
             event, values = window.read()
-        #print(event, values)
-        if (not first_read):
+        print(event, values)
+        if not first_read:
             first_read = True
             init_combat_panel(window, values)
             init_currency_panel(window, values)
@@ -151,7 +152,8 @@ def main():
                     update_index = int(splits[len(splits)-1])
                 update_weapon_attack(window, values, update_index)
 
-        if event in [SPLIT_PLATINUM_INPUT_KEY, SPLIT_GOLD_INPUT_KEY, SPLIT_ELECTRUM_INPUT_KEY, SPLIT_SILVER_INPUT_KEY, SPLIT_COPPER_INPUT_KEY]:
+        if event in [SPLIT_PLATINUM_INPUT_KEY, SPLIT_GOLD_INPUT_KEY, SPLIT_ELECTRUM_INPUT_KEY,
+                        SPLIT_SILVER_INPUT_KEY, SPLIT_COPPER_INPUT_KEY]:
             # Input validation
             if len(values[event]) == 0:
                 continue
@@ -163,7 +165,9 @@ def main():
                 window[event].update(str(0))
             split_currency(window, values)
         
-        if event in [SPLIT_PLATINUM_USED_KEY, SPLIT_GOLD_USED_KEY, SPLIT_ELECTRUM_USED_KEY, SPLIT_SILVER_USED_KEY, SPLIT_COPPER_USED_KEY, SPLIT_CONSOLIDATE_CURRENCY_KEY]:
+        if event in [SPLIT_PLATINUM_USED_KEY, SPLIT_GOLD_USED_KEY, SPLIT_ELECTRUM_USED_KEY,
+                        SPLIT_SILVER_USED_KEY, SPLIT_COPPER_USED_KEY,
+                        SPLIT_CONSOLIDATE_CURRENCY_KEY]:
             split_currency(window, values)
             if (event == SPLIT_CONSOLIDATE_CURRENCY_KEY):
                 window[SPLIT_CURRENCIES_USED_PANEL].update(visible=values[event])
@@ -179,8 +183,11 @@ def main():
                 window[event].update(str(1))
             split_currency(window, values)
         
-        if event in [MATH_PLATINUM_INPUT_1_KEY, MATH_GOLD_INPUT_1_KEY, MATH_ELECTRUM_INPUT_1_KEY, MATH_SILVER_INPUT_1_KEY, MATH_COPPER_INPUT_1_KEY,
-                        MATH_PLATINUM_INPUT_2_KEY, MATH_GOLD_INPUT_2_KEY, MATH_ELECTRUM_INPUT_2_KEY, MATH_SILVER_INPUT_2_KEY, MATH_COPPER_INPUT_2_KEY]:
+        if event in [MATH_PLATINUM_INPUT_1_KEY, MATH_GOLD_INPUT_1_KEY, MATH_ELECTRUM_INPUT_1_KEY,
+                        MATH_SILVER_INPUT_1_KEY, MATH_COPPER_INPUT_1_KEY,
+                        MATH_PLATINUM_INPUT_2_KEY, MATH_GOLD_INPUT_2_KEY, 
+                        MATH_ELECTRUM_INPUT_2_KEY, MATH_SILVER_INPUT_2_KEY, 
+                        MATH_COPPER_INPUT_2_KEY]:
             # Input validation
             if len(values[event]) == 0:
                 continue
@@ -194,7 +201,7 @@ def main():
         
         if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY, MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY, MATH_OPERATION_KEY]:
             add_currency(window, values)
-            if (event == MATH_CONSOLIDATE_CURRENCY_KEY):
+            if event == MATH_CONSOLIDATE_CURRENCY_KEY:
                 window[MATH_CURRENCIES_USED_PANEL].update(visible=values[event])
         
         if event == DOWNTIME_TABS_KEY:
@@ -283,20 +290,20 @@ def combat_panel(visible: bool = False) -> sg.Column:
 def combat_character_panel() -> sg.Column:
     layout = [
         [sg.Text('Character Level:', size=(30, 1), justification='right'),
-            sg.Spin([i for i in range(1, 20)], key=CHARACTER_LEVEL_KEY,
+            sg.Spin(list(range(1, 20)), key=CHARACTER_LEVEL_KEY,
                 enable_events=True, size=(5,1), auto_size_text=False),
             sg.Text('', size=(22,1))],
         [sg.Text('Attack Stat:', size=(30, 1), justification='right'),
-            sg.Spin([i for i in range(1, 30)], initial_value=10,
+            sg.Spin(list(range(1, 30)), initial_value=10,
                 key=CHARACTER_ATTACK_STAT_KEY, enable_events=True, size=(5,1),
                 auto_size_text=False),
             sg.Text('', size=(22,1))],
         [sg.Text('Additional Damage Modifier:', size=(30, 1), justification='right'),
-            sg.Spin([i for i in range(0, 100)], key=CHARACTER_DAMAGE_MOD_KEY,
+            sg.Spin(list(range(0, 100)), key=CHARACTER_DAMAGE_MOD_KEY,
                 enable_events=True, size=(5,1), auto_size_text=False),
                 sg.Text('', size=(22,1))],
         [sg.Text('Target AC:', size=(30, 1), justification='right'),
-            sg.Spin([i for i in range(1, 30)], initial_value=16, key=TARGET_AC_KEY,
+            sg.Spin(list(range(1, 30)), initial_value=16, key=TARGET_AC_KEY,
                 enable_events=True, size=(5,1), auto_size_text=False),
                 sg.Text('', size=(22,1))],
     ]
@@ -549,7 +556,7 @@ def downtime_skill_panel() -> sg.Tab:
 
 def downtime_tool_panel() -> sg.Tab:
     skill_columns = []
-    for index, (name, member) in enumerate(Skill.__members__.items()):
+    for index, (_, member) in enumerate(Skill.__members__.items()):
         column_layout = [
             [
                 sg.Text(Skill.get_display_name(member), size=(20,1), justification='right'),
@@ -595,8 +602,7 @@ def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
         window[f'-screen-{old_layout}-'].update(visible=False)
         window[f'-screen-{new_layout}-'].update(visible=True)
         return new_layout
-    else:
-        return old_layout
+    return old_layout
 
 #endregion
 
@@ -606,7 +612,6 @@ def add_weapon_damage(window: sg.Window, parent_index: int):
     window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].update(visible=True)
     window[f'{WEAPON_DAMAGE_FRAME_KEY}-{parent_index}'].unhide_row()
     next_index = -1
-    parent_col = window[f'{WEAPON_PANEL_KEY}-{parent_index}']
     for index in range(NUM_DAMAGE_PANELS):
         col = window[f'{WEAPON_DAMAGE_PANEL_KEY}-{parent_index}-{index+1}']
         if (not col.visible):
@@ -629,7 +634,6 @@ def add_weapon_damage(window: sg.Window, parent_index: int):
 def remove_weapon_damage(window: sg.Window, parent_index: int):
     # Find last visible panel
     next_index = -1
-    parent_col = window[f'{WEAPON_PANEL_KEY}-{parent_index}']
     for index in range(NUM_DAMAGE_PANELS, 0, -1):
         col = window[f'{WEAPON_DAMAGE_PANEL_KEY}-{parent_index}-{index}']
         if (col.visible):
@@ -673,10 +677,10 @@ def update_weapon_attack(window: sg.Window, values: dict, index: int):
     window[f'{HIT_BONUS_KEY}-{index}'].update(value=hit_bonus)
     window[f'{AVG_HIT_DAMAGE_KEY}-{index}'].update(value='{:.2f}'.format(avg_hit_damage))
     window[f'{AVG_DAMAGE_KEY}-{index}'].update(value='{:.2f}'.format(avg_damage))
-    event, values = window.read(timeout=0)
-    update_weapon_summary(window, values)
+    _, values = window.read(timeout=0)
+    update_weapon_summary(window)
 
-def update_weapon_summary(window, values):
+def update_weapon_summary(window):
     weapon_damages = []
     for weapon_index in range(1,3):
         weapon_damages.append(float(window[f'{AVG_DAMAGE_KEY}-{weapon_index}'].get()))
@@ -685,7 +689,7 @@ def update_weapon_summary(window, values):
     else:
         difference = (weapon_damages[0] - weapon_damages[1]) / weapon_damages[1]
     if abs(difference) < 0.00001:
-        summary = f'Weapon 1 deals the same damage as weapon 2'
+        summary = 'Weapon 1 deals the same damage as weapon 2'
     elif (difference < 0):
         summary = f'Weapon 1 deals {"{:0.2%}".format(difference)} less damage than weapon 2'
     else:
@@ -756,7 +760,7 @@ def add_currency(window:sg.Window, values:dict):
     currencies_used |= CurrencyOptions.GOLD if values[MATH_GOLD_USED_KEY] else CurrencyOptions.COPPER
     currencies_used |= CurrencyOptions.PLATINUM if values[MATH_PLATINUM_USED_KEY] else CurrencyOptions.COPPER
 
-    if (addition):
+    if addition:
         result = currency1 + currency2
     else:
         result = currency1 - currency2
@@ -797,7 +801,7 @@ def calculate_tool_training(window:sg.Window, values:dict):
     tool = Tool.convert_display_name(values[DOWNTIME_TOOL_INPUT_KEY])
     total = 0
     related_skills = tool.skills()
-    for index, (name, member) in enumerate(Skill.__members__.items()):
+    for index, (_, member) in enumerate(Skill.__members__.items()):
         if member in related_skills:
             ability_mod = floor((get_ability_score(values, member.ability()) - 10) / 2)
             proficiency_bonus = int(values[DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY]) if values[DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS[index]] else 0
@@ -855,7 +859,7 @@ def init_active_downtime_panel(window: sg.Window, values: dict):
     show_tool_skills(window, values)
 
 def get_ability_score(values: dict, ability: Ability) -> int:
-    map = {
+    mapping = {
         Ability.STRENGTH: int(values[DOWNTIME_STRENGTH_INPUT_KEY]),
         Ability.DEXTERITY: int(values[DOWNTIME_DEXTERITY_INPUT_KEY]),
         Ability.CONSTITUTION: int(values[DOWNTIME_CONSTITUTION_INPUT_KEY]),
@@ -863,7 +867,7 @@ def get_ability_score(values: dict, ability: Ability) -> int:
         Ability.WISDOM: int(values[DOWNTIME_WISDOM_INPUT_KEY]),
         Ability.CHARISMA: int(values[DOWNTIME_CHARISMA_INPUT_KEY]),
     }
-    return map[ability]
+    return mapping[ability]
 
 def show_tool_skills(window: sg.Window, values: dict):
     if values[DOWNTIME_TABS_KEY] != DOWNTIME_TOOL_TAB_KEY:
@@ -872,7 +876,7 @@ def show_tool_skills(window: sg.Window, values: dict):
         return
     tool = Tool.convert_display_name(values[DOWNTIME_TOOL_INPUT_KEY])
     related_skills = tool.skills()
-    for index, (name, member) in enumerate(Skill.__members__.items()):
+    for index, (_, member) in enumerate(Skill.__members__.items()):
         if member in related_skills:
             window[DOWNTIME_TOOL_SKILL_PANEL_KEYS[index]].update(visible=True)
         else:

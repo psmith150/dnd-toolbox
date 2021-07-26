@@ -1,5 +1,5 @@
+from __future__ import division, absolute_import
 from enum import Enum, auto, IntEnum
-from types import ClassMethodDescriptorType
 from typing import List
 from math import floor
 
@@ -21,7 +21,7 @@ class DamageType(Enum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in DamageType.__members__.items():
+        for name, _ in DamageType.__members__.items():
             values.append(name.title())
         return values
 
@@ -57,7 +57,7 @@ class Dice(IntEnum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in Dice.__members__.items():
+        for name, _ in Dice.__members__.items():
             values.append(name.lower())
         return values
 
@@ -134,8 +134,8 @@ class WeaponType(Enum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, member in WeaponType.__members__.items():
-            if (name.endswith('2H')):
+        for name, _ in WeaponType.__members__.items():
+            if name.endswith('2H'):
                 values.append(name[:-2].title().replace('_', ' ') + ' (2 hands)')
             else:
                 values.append(name.title().replace('_', ' '))
@@ -145,7 +145,7 @@ class WeaponType(Enum):
     def get_display_name(cls, value):
         try:
             name = WeaponType(value).name
-            if (name.endswith('2H')):
+            if name.endswith('2H'):
                 name = name[:-2] + ' (2 hands)'
             display = name.title().replace('_', ' ')
         except ValueError:
@@ -207,7 +207,9 @@ class Weapon:
         WeaponType.LONGBOW: Damage(1, Dice.D8, DamageType.PIERCING),
         WeaponType.NET: Damage(1, Dice.D0, DamageType.SLASHING),
     }
-    def __init__(self, weapon_type: WeaponType, bonus: int = 0, extra_damage: List[Damage] = []):
+    def __init__(self, weapon_type: WeaponType, bonus: int = 0, extra_damage: List[Damage] = None):
+        if extra_damage is None:
+            extra_damage = []
         self.weapon_type = weapon_type
         self.bonus = bonus
         self.extra_damage = extra_damage
@@ -235,7 +237,8 @@ class Weapon:
         return average
 
 class WeaponAttack:
-    def __init__(self, weapon: Weapon, level: int, attack_stat: int, proficient: bool = True, damage_mod: int = 0):
+    def __init__(self, weapon: Weapon, level: int, attack_stat: int, proficient: bool = True,
+                    damage_mod: int = 0):
         self.weapon = weapon
         self.level = level
         self.attack_stat = attack_stat
@@ -246,13 +249,13 @@ class WeaponAttack:
     def proficiency_bonus(self) -> int:
         if 0 < self.level <= 4:
             return 2
-        elif 4 < self.level <= 8:
+        if 4 < self.level <= 8:
             return 3
-        elif 8 < self.level <= 12:
+        if 8 < self.level <= 12:
             return 4
-        elif 12 < self.level <= 16:
+        if 12 < self.level <= 16:
             return 5
-        elif 16 < self.level <= 20:
+        if 16 < self.level <= 20:
             return 6
         else:
             return 2
@@ -263,7 +266,8 @@ class WeaponAttack:
     
     @property
     def hit_bonus(self) -> int:
-        return (self.proficiency_bonus if self.proficient else 0) + self.attack_mod + self.weapon.bonus
+        return ((self.proficiency_bonus if self.proficient else 0) + self.attack_mod +
+                self.weapon.bonus)
     
     def hit_chance(self, target_ac: int):
         return max(min(Dice.D20 - target_ac + self.hit_bonus + 1, 19), 1)
@@ -272,7 +276,8 @@ class WeaponAttack:
         return self.weapon.average_damage() + self.attack_mod + self.damage_mod
     
     def average_damage(self, target_ac: int) -> float:
-        return max((self.hit_chance(target_ac) - 1), 1) / Dice.D20 * self.average_hit_damage() + 1 / Dice.D20 * self.critical_hit_damage()
+        return (max((self.hit_chance(target_ac) - 1), 1) / Dice.D20 * self.average_hit_damage() +
+                    1 / Dice.D20 * self.critical_hit_damage())
     
     def critical_hit_damage(self) -> float:
         return self.weapon.average_critical_damage() + self.attack_mod + self.damage_mod
