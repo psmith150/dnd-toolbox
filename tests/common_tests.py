@@ -4,7 +4,7 @@ from toolbox.common import Ability, AbilitySet, Skill, Tool
 class SkillTestCase(TestCase):
     def testAbility(self):
         skill = Skill.ACROBATICS
-        self.assertEquals(skill.ability(), Ability.DEXTERITY)
+        self.assertEqual(skill.ability(), Ability.DEXTERITY)
 
 class ToolTestCase(TestCase):
     def testSkills(self):
@@ -14,9 +14,9 @@ class ToolTestCase(TestCase):
 class AbilitySetTestCase(TestCase):
     def testGetAbility(self):
         abilities = AbilitySet(10, 11, 12, 13, 14, 15)
-        self.assertEquals(abilities[Ability.CHARISMA], abilities.charisma)
+        self.assertEqual(abilities[Ability.CHARISMA], abilities.charisma)
 
     def testSetAbility(self):
         abilities = AbilitySet(10, 11, 12, 13, 14, 15)
         abilities[Ability.CHARISMA] = 17
-        self.assertEquals(abilities.charisma, 17)
+        self.assertEqual(abilities.charisma, 17)
