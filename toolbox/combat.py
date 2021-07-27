@@ -1,9 +1,43 @@
+"""Perform calculations related to combat in Dungeons & Dragons 5th edition.
+
+Classes:
+
+    DamageType: Enumeration of different damage types.
+    Dice: Enumeration of different dice types.
+    Damage: Represents a damage calculation.
+    WeaponType: Enumeration of different weapon types.
+    Weapon: Represents a weapon used to make an attack.
+    WeaponAttack: Represents an attack made by a weapon.
+"""
 from __future__ import division, absolute_import
 from enum import Enum, auto, IntEnum
 from typing import List
 from math import floor
 
 class DamageType(Enum):
+    """Defines an enumeration of damage types.
+    
+    Members:
+        ACID
+        BLUDGEONING
+        COLD
+        FIRE
+        FORCE
+        LIGHTNING
+        NECROTIC
+        PIERCING
+        POISON
+        PSYCHIC
+        RADIANT
+        SLASHING
+        THUNDER
+    
+    Methods:
+        get_values: Return a list of string representations of the members.
+        get_display_name: Get a formatted string representation of a member.
+        convert_display_name: Convert a string representatino of a member into the member object.
+    """
+
     ACID = auto()
     BLUDGEONING = auto()
     COLD = auto()
@@ -19,7 +53,12 @@ class DamageType(Enum):
     THUNDER = auto()
 
     @classmethod
-    def get_values(cls):
+    def get_values(cls) -> List[str]:
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
         values = []
         for name, _ in DamageType.__members__.items():
             values.append(name.title())
@@ -27,6 +66,18 @@ class DamageType(Enum):
 
     @classmethod
     def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in titlecase.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
+
         try:
             display = DamageType(value).name.title()
         except ValueError:
@@ -35,6 +86,18 @@ class DamageType(Enum):
     
     @classmethod
     def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
         try:
             converted_name = name.upper()
             value = DamageType[converted_name]
@@ -161,7 +224,6 @@ class WeaponType(Enum):
             value = WeaponType.CLUB
         return value
 
-
 class Weapon:
     _weapon_map = {
         WeaponType.CLUB: Damage(1, Dice.D4, DamageType.BLUDGEONING),
@@ -238,7 +300,7 @@ class Weapon:
 
 class WeaponAttack:
     def __init__(self, weapon: Weapon, level: int, attack_stat: int, proficient: bool = True,
-                    damage_mod: int = 0):
+                 damage_mod: int = 0):
         self.weapon = weapon
         self.level = level
         self.attack_stat = attack_stat
@@ -277,7 +339,7 @@ class WeaponAttack:
     
     def average_damage(self, target_ac: int) -> float:
         return (max((self.hit_chance(target_ac) - 1), 1) / Dice.D20 * self.average_hit_damage() +
-                    1 / Dice.D20 * self.critical_hit_damage())
+                1 / Dice.D20 * self.critical_hit_damage())
     
     def critical_hit_damage(self) -> float:
         return self.weapon.average_critical_damage() + self.attack_mod + self.damage_mod

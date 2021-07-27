@@ -1,3 +1,4 @@
+"""Test the implementation of the currency.py module."""
 from unittest import TestCase, main
 from toolbox.currency import Currency, CurrencyOptions
 

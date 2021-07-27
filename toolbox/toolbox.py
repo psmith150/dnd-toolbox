@@ -1,10 +1,10 @@
 from __future__ import division, absolute_import
 from math import ceil, floor
 import PySimpleGUI as sg
-from .currency import Currency, CurrencyOptions
-from .combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
-from .common import Skill, Tool, Ability
-
+from currency import Currency, CurrencyOptions
+from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
+from common import Skill, Tool, Ability
+import version
 
 #region GUI Constants
 THEME = 'Dark Grey 13'
@@ -265,13 +265,20 @@ def main():
     
 
 def main_window() -> sg.Window:
+    bottom_bar_layout = [
+        [
+            sg.Text(version.__version__, background_color='steelblue3')
+        ]
+    ]
+    bottom_bar = sg.Column(bottom_bar_layout, background_color='steelblue3', element_justification='left', vertical_alignment='bottom', pad=(0,0), expand_x=True, expand_y=True)
     layout = [
         [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat', size=(20,1))],
         [combat_panel(True), currency_panel(False), downtime_panel(False)],
-        [sg.Exit(key=EXIT_BUTTON_KEY)]
+        [sg.Exit(key=EXIT_BUTTON_KEY)],
+        [bottom_bar]
     ]
 
-    return sg.Window("D&D Toolbox", layout=layout, element_justification='center')
+    return sg.Window("D&D Toolbox", layout=layout, element_justification='center', margins=(2,0))
 
 #region GUI Elements
 #region Combat Screen
