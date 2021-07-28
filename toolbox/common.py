@@ -1,3 +1,12 @@
+"""A collection of classes that are commonly used across multiple aspects of Dungeons & Dragons
+5th edition.
+
+Classes:
+    Ability: Enumeration of the basic abilities.
+    Skill: Enumeration of ability based skills.
+    Tool: Enumeration of skill based tools.
+    AbilitySet: A collection of ability scores used by a player character.
+"""
 from __future__ import absolute_import
 from enum import Enum, auto
 
@@ -162,27 +171,52 @@ class Tool(Enum):
     @classmethod
     def get_values(cls):
         values = []
-        for name, _ in Tool.__members__.items():
-            values.append(name.title().replace('_', ' '))
+        for _, member in Tool.__members__.items():
+            values.append(cls.get_display_name(member))
         return values
 
     @classmethod
     def get_display_name(cls, value):
-        try:
-            display = Tool(value).name.title().replace('_', ' ')
-        except ValueError:
-            display = 'Unknown'
-        return display
+        for key, val in _tool_name_map.items():
+            if key == value:
+                return val
+        return 'Unknown'
     
     @classmethod
     def convert_display_name(cls, name):
-        try:
-            converted_name = name.upper().replace(' ', '_')
-            value = Tool[converted_name]
-        except KeyError:
-            value = Tool.ALCHEMIST
-        return value
+        for key, value in _tool_name_map.items():
+            if value == name:
+                return key
+        return Tool.ALCHEMIST
 
+_tool_name_map = {
+    Tool.ALCHEMIST: "Alchemist's Supplies", 
+    Tool.BREWER: "Brewer's Supplies",
+    Tool.CALLIGRAPHER: "Calligrapher's Supplies",
+    Tool.CARPENTER: "Carpenter's Tools",
+    Tool.CARTOGRAPHER: "Cartographer's Tools",
+    Tool.COBBLER: "Cobbler's Tools",
+    Tool.COOK: "Cook's Utensils",
+    Tool.DISGUISE: "Disguise Kit",
+    Tool.FORGERY: "Forgery Kit",
+    Tool.GAMING: "Gaming Sets",
+    Tool.GLASSBLOWER: "Glassblower's Tools",
+    Tool.HERBALISM: "Herbalism Kit",
+    Tool.JEWELER: "Jeweler's Tools",
+    Tool.VEHICLES: "Land, Water, and Air Vehicles",
+    Tool.LEATHERWORKER: "Leatherworker's Tools",
+    Tool.MASON: "Mason's Tools",
+    Tool.MUSICAL: "Musical Instruments",
+    Tool.NAVIGATOR: "Navigator's Tools",
+    Tool.PAINTER: "Painter's Supplies",
+    Tool.POISONER: "Poisoner's Kit",
+    Tool.POTTER: "Potter's Tools",
+    Tool.SMITH: "Smith's Tools",
+    Tool.THIEVES: "Thieves' Tools",
+    Tool.TINKER: "Tinker's Tools",
+    Tool.WEAVER: "Weaver's Tools",
+    Tool.WOODCARVER: "Woodcarver's Tools"
+}
 class AbilitySet():
     def __init__(self, strength:int=10, dexterity:int=10, constitution:int=10, intelligence:int=10,
                     wisdom:int=10, charisma:int=10) -> None:
@@ -193,7 +227,7 @@ class AbilitySet():
         self.wisdom = int(wisdom)
         self.charisma = int(charisma)
     
-    def __delitem__(self, key):
+    def __delitem__(self, _):
         pass
 
     def __getitem__(self, key):

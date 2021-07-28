@@ -577,7 +577,7 @@ def downtime_tool_panel() -> sg.Tab:
     layout = [
         [
             sg.Combo(Tool.get_values(), default_value=Tool.get_display_name(Tool.ALCHEMIST),
-                key=DOWNTIME_TOOL_INPUT_KEY, enable_events=True, size=(20,1) )
+                key=DOWNTIME_TOOL_INPUT_KEY, enable_events=True, size=(30,1) )
         ],
         *skill_columns
     ]
