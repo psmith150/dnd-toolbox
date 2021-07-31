@@ -2,14 +2,26 @@
 """
 from __future__ import division, absolute_import
 from math import ceil, floor
+import sys
 import PySimpleGUI as sg
+from pathlib import Path
 from currency import Currency, CurrencyOptions
 from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
 from common import Skill, Tool, Ability
 import version
 
 #region GUI Constants
-THEME = 'Dark Grey 13'
+#region Color Constants
+BASE_THEME = 'DarkBlue3'
+BACKGROUND_COLOR = '#64778D'
+BUTTON_FOREGROUND_COLOR = 'white'
+BUTTON_BACKGROUND_COLOR = '#416D9F'
+TAB_NOT_SELECTED_FOREGROUND_COLOR = 'lightgray'
+TAB_NOT_SELECTED_BACKGROUND_COLOR = '#6D8199'
+TAB_SELECTED_FOREGROUND_COLOR = 'white'
+TAB_SELECTED_BACKGROUND_COLOR = '#64778D'
+#endregion
+
 COMBAT_SCREEN_KEY = '-screen-0-'
 CURRENCY_SCREEN_KEY = '-screen-1-'
 DOWNTIME_SCREEN_KEY = '-screen-2-'
@@ -111,7 +123,7 @@ def main():
     The primary purpose of this program is the repeated loop that listens for events and calls
     the appropriate function.
     """
-    sg.theme(THEME)
+    set_theme()
     window = main_window()
     active_layout = 0
     first_read = False
@@ -121,7 +133,7 @@ def main():
             event, values = window.read(timeout=10)
         else:
             event, values = window.read()
-        print(event, values)
+        #print(event, values)
         if not first_read:
             first_read = True
             init_combat_panel(window, values)
@@ -288,23 +300,44 @@ def main_window() -> sg.Window:
     Returns:
         sg.Window: The created Window object.
     """
+    bottom_bar_color = '#3F4B59'
     bottom_bar_layout = [
         [
-            sg.Text(version.__version__, background_color='steelblue3')
+            sg.Text(version.__version__, background_color=bottom_bar_color)
         ]
     ]
-    bottom_bar = sg.Column(bottom_bar_layout, background_color='steelblue3',
-                           element_justification='left', vertical_alignment='bottom', pad=(0, 0),
+    bottom_bar = sg.Column(bottom_bar_layout, background_color=bottom_bar_color,
+                           element_justification='left', vertical_alignment='bottom', pad=((0, 0), (5, 0)),
                            expand_x=True, expand_y=True)
     layout = [
         [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat',
-                  size=(20, 1))],
+                  size=(20, 1), pad=(0, 8))],
         [combat_panel(True), currency_panel(False), downtime_panel(False)],
-        [sg.Exit(key=EXIT_BUTTON_KEY)],
+        [sg.Exit(key=EXIT_BUTTON_KEY, size=(12, 1))],
         [bottom_bar]
     ]
+    base_path = getattr(sys, '_MEIPASS','.')+'/'
+    icon_path = Path(base_path) / 'images' / 'icon.ico'
+    return sg.Window("D&D Toolbox", layout=layout, element_justification='center', margins=(0, 0),
+                     icon=icon_path)
 
-    return sg.Window("D&D Toolbox", layout=layout, element_justification='center', margins=(2, 0))
+def set_theme():
+    """Set the active theme of the GUI.
+    """
+    sg.theme(BASE_THEME)
+    sg.theme_background_color(BACKGROUND_COLOR)
+    sg.theme_button_color((BUTTON_FOREGROUND_COLOR, BUTTON_BACKGROUND_COLOR))
+    sg.theme_border_width()
+    sg.theme_element_background_color()
+    sg.theme_element_text_color()
+    sg.theme_input_background_color()
+    sg.theme_input_text_color()
+    sg.theme_progress_bar_border_width()
+    sg.theme_progress_bar_color()
+    sg.theme_slider_border_width()
+    sg.theme_slider_color
+    sg.theme_text_color()
+    sg.theme_text_element_background_color()
 
 #region GUI Elements
 #region Combat Screen
@@ -481,7 +514,11 @@ def currency_panel(visible: bool = False) -> sg.Column:
         sg.Column: The created Column object.
     """
     tabs = [[currency_split_panel(), currency_math_panel()]]
-    layout = [[sg.TabGroup(layout=tabs, tab_location='top', border_width=0)]]
+    layout = [[sg.TabGroup(layout=tabs, tab_location='top', border_width=0,
+                           tab_background_color=TAB_NOT_SELECTED_BACKGROUND_COLOR,
+                           title_color=TAB_NOT_SELECTED_FOREGROUND_COLOR,
+                           selected_background_color=TAB_SELECTED_BACKGROUND_COLOR,
+                           selected_title_color=TAB_SELECTED_FOREGROUND_COLOR)]]
     return sg.Column(layout, key=CURRENCY_SCREEN_KEY, visible=visible,
                      element_justification='center')
 
@@ -681,7 +718,10 @@ def downtime_panel(visible: bool = False) -> sg.Column:
                      size=(5, 1)),
         ],
         [sg.TabGroup(layout=tabs, tab_location='top', border_width=0, key=DOWNTIME_TABS_KEY,
-                     enable_events=True)],
+                     enable_events=True, tab_background_color=TAB_NOT_SELECTED_BACKGROUND_COLOR,
+                     title_color=TAB_NOT_SELECTED_FOREGROUND_COLOR,
+                     selected_background_color=TAB_SELECTED_BACKGROUND_COLOR,
+                     selected_title_color=TAB_SELECTED_FOREGROUND_COLOR)],
         [
             sg.HorizontalSeparator()
         ],
@@ -925,13 +965,16 @@ def update_weapon_summary(window: sg.Window):
     if abs(weapon_damages[1]) < 0.00001:
         difference = 0.0
     else:
-        difference = (weapon_damages[0] - weapon_damages[1]) / weapon_damages[1]
+        if weapon_damages[0] >= weapon_damages[1]:
+            difference = (weapon_damages[0] - weapon_damages[1]) / weapon_damages[1]
+        else:
+            difference = (weapon_damages[1] - weapon_damages[0]) / weapon_damages[0]
     if abs(difference) < 0.00001:
         summary = 'Weapon 1 deals the same damage as weapon 2'
-    elif difference < 0:
-        summary = f'Weapon 1 deals {"{:0.2%}".format(difference)} less damage than weapon 2'
-    else:
+    elif weapon_damages[0] >= weapon_damages[1]:
         summary = f'Weapon 1 deals {"{:0.2%}".format(difference)} more damage than weapon 2'
+    else:
+        summary = f'Weapon 2 deals {"{:0.2%}".format(difference)} more damage than weapon 1'
     window[WEAPON_SUMMARY_KEY].update(value=summary)
     window[WEAPON_SUMMARY_KEY].expand(expand_x=True)
 
