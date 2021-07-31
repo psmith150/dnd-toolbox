@@ -316,8 +316,8 @@ def main_window() -> sg.Window:
         [sg.Exit(key=EXIT_BUTTON_KEY, size=(12, 1))],
         [bottom_bar]
     ]
-    base_path = getattr(sys, '_MEIPASS','.')+'/'
-    icon_path = Path(base_path) / 'images' / 'icon.ico'
+    base_path = getattr(sys, '_MEIPASS', str(Path(__file__).parent))+'/'
+    icon_path = Path(base_path).absolute() / 'images' / 'icon.ico'
     return sg.Window("D&D Toolbox", layout=layout, element_justification='center', margins=(0, 0),
                      icon=icon_path)
 
