@@ -35,7 +35,7 @@ class DamageType(Enum):
     Methods:
         get_values: Return a list of string representations of the members.
         get_display_name: Get a formatted string representation of a member.
-        convert_display_name: Convert a string representatino of a member into the member object.
+        convert_display_name: Convert a string representation of a member into the member object.
     """
 
     ACID = auto()
@@ -77,7 +77,6 @@ class DamageType(Enum):
         Returns:
             A string representing the member.
         """
-
         try:
             display = DamageType(value).name.title()
         except ValueError:
