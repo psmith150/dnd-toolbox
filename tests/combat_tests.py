@@ -1,3 +1,4 @@
+"""Test the implementation of the combat.py module."""
 import unittest
 from toolbox.combat import Damage, WeaponType, Weapon, WeaponAttack, Dice, DamageType
 

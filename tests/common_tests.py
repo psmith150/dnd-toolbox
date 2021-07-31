@@ -1,3 +1,4 @@
+"""Test the implementation of the common.py module."""
 from unittest import TestCase
 from toolbox.common import Ability, AbilitySet, Skill, Tool
 

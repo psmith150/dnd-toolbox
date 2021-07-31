@@ -1,7 +1,31 @@
+"""A collection of classes that are commonly used across multiple aspects of Dungeons & Dragons
+5th edition.
+
+Classes:
+    Ability: Enumeration of the basic abilities.
+    Skill: Enumeration of ability based skills.
+    Tool: Enumeration of skill based tools.
+    AbilitySet: A collection of ability scores used by a player character.
+"""
 from __future__ import absolute_import
 from enum import Enum, auto
 
 class Ability(Enum):
+    """Defines annumeration of basic abilities.
+
+    Members:
+        STRENGTH
+        DEXTERITY
+        CONSTITUTION
+        INTELLIGENCE
+        WISDOM
+        CHARISMA
+    
+    Methods:
+        get_values: Return a list of string representations of the members.
+        get_display_name: Get a formatted string representation of a member.
+        convert_display_name: Convert a string representation of a member into the member object.
+    """
     STRENGTH = auto()
     DEXTERITY = auto()
     CONSTITUTION = auto()
@@ -11,6 +35,11 @@ class Ability(Enum):
 
     @classmethod
     def get_values(cls):
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
         values = []
         for name, _ in Ability.__members__.items():
             values.append(name.title())
@@ -18,6 +47,17 @@ class Ability(Enum):
 
     @classmethod
     def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in titlecase.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
         try:
             display = Ability(value).name.title()
         except ValueError:
@@ -26,6 +66,18 @@ class Ability(Enum):
     
     @classmethod
     def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
         try:
             converted_name = name.upper()
             value = Ability[converted_name]
@@ -34,6 +86,34 @@ class Ability(Enum):
         return value
 
 class Skill(Enum):
+    """Defines an enumeration of skills.
+    
+    Members:
+        ACROBATICS
+        ANIMAL_HANDLING
+        ARCANA
+        ATHLETICS
+        DECEPTION
+        HISTORY
+        INSIGHT
+        INTIMIDATION
+        INVESTIGATION
+        MEDICINE
+        NATURE
+        PERCEPTION
+        PERFORMANCE
+        PERSUASION
+        RELIGION
+        SLEIGHT_OF_HAND
+        STEALTH
+        SURVIVAL
+    
+    Methods:
+        ability: Return the Ability associated with a skill.
+        get_values: Return a list of string representations of the members.
+        get_display_name: Get a formatted string representation of a member.
+        convert_display_name: Convert a string representation of a member into the member object.
+    """
     ACROBATICS = auto()
     ANIMAL_HANDLING = auto()
     ARCANA = auto()
@@ -54,6 +134,11 @@ class Skill(Enum):
     SURVIVAL = auto()
 
     def ability(self) -> Ability:
+        """Retrn the Ability associated with the Skill.
+
+        Returns:
+            The associated Ability.
+        """
         mapping = {
             self.ACROBATICS: Ability.DEXTERITY,
             self.ANIMAL_HANDLING: Ability.WISDOM,
@@ -78,6 +163,11 @@ class Skill(Enum):
     
     @classmethod
     def get_values(cls):
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
         values = []
         for name, _ in Skill.__members__.items():
             values.append(name.title().replace('_', ' '))
@@ -85,6 +175,18 @@ class Skill(Enum):
 
     @classmethod
     def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in titlecase and with underscores
+        replaced by spaces.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
         try:
             display = Skill(value).name.title().replace('_', ' ')
         except ValueError:
@@ -93,6 +195,18 @@ class Skill(Enum):
     
     @classmethod
     def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
         try:
             converted_name = name.upper().replace(' ', '_')
             value = Skill[converted_name]
@@ -101,6 +215,42 @@ class Skill(Enum):
         return value
 
 class Tool(Enum):
+    """Defines an enumeration of tool proficiency.
+    
+    Members:
+        ALCHEMIST
+        BREWER
+        CALLIGRAPHER
+        CARPENTER
+        CARTOGRAPHER
+        COBBLER
+        COOK
+        DISGUISE
+        FORGERY
+        GAMING
+        GLASSBLOWER
+        HERBALISM
+        JEWELER
+        VEHICLES
+        LEATHERWORKER
+        MASON
+        MUSICAL
+        NAVIGATOR
+        PAINTER
+        POISONER
+        POTTER
+        SMITH
+        THIEVES
+        TINKER
+        WEAVER
+        WOODCARVER
+    
+    Methods:
+        skills: Return a list of Skills associated with the Tool.
+        get_values: Return a list of string representations of the members.
+        get_display_name: Get a formatted string representation of a member.
+        convert_display_name: Convert a string representation of a member into the member object.
+    """
     ALCHEMIST = auto()
     BREWER = auto()
     CALLIGRAPHER = auto()
@@ -129,6 +279,11 @@ class Tool(Enum):
     WOODCARVER = auto()
 
     def skills(self) -> Skill:
+        """Return a list of Skills associated with a Tool.
+
+        Returns:
+            A list containing all Skills associated with the Tool.
+        """
         mapping = {
             self.ALCHEMIST: [Skill.ARCANA, Skill.INVESTIGATION],
             self.BREWER: [Skill.HISTORY, Skill.MEDICINE, Skill.PERSUASION],
@@ -161,31 +316,93 @@ class Tool(Enum):
     
     @classmethod
     def get_values(cls):
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
         values = []
-        for name, _ in Tool.__members__.items():
-            values.append(name.title().replace('_', ' '))
+        for _, member in Tool.__members__.items():
+            values.append(cls.get_display_name(member))
         return values
 
     @classmethod
     def get_display_name(cls, value):
-        try:
-            display = Tool(value).name.title().replace('_', ' ')
-        except ValueError:
-            display = 'Unknown'
-        return display
+        """Return a string representation of a member.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
+        for key, val in _TOOL_NAME_MAP.items():
+            if key == value:
+                return val
+        return 'Unknown'
     
     @classmethod
     def convert_display_name(cls, name):
-        try:
-            converted_name = name.upper().replace(' ', '_')
-            value = Tool[converted_name]
-        except KeyError:
-            value = Tool.ALCHEMIST
-        return value
+        """Convert a string name into the corresponding class name.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
+        for key, value in _TOOL_NAME_MAP.items():
+            if value == name:
+                return key
+        return Tool.ALCHEMIST
 
+_TOOL_NAME_MAP = {
+    Tool.ALCHEMIST: "Alchemist's Supplies", 
+    Tool.BREWER: "Brewer's Supplies",
+    Tool.CALLIGRAPHER: "Calligrapher's Supplies",
+    Tool.CARPENTER: "Carpenter's Tools",
+    Tool.CARTOGRAPHER: "Cartographer's Tools",
+    Tool.COBBLER: "Cobbler's Tools",
+    Tool.COOK: "Cook's Utensils",
+    Tool.DISGUISE: "Disguise Kit",
+    Tool.FORGERY: "Forgery Kit",
+    Tool.GAMING: "Gaming Sets",
+    Tool.GLASSBLOWER: "Glassblower's Tools",
+    Tool.HERBALISM: "Herbalism Kit",
+    Tool.JEWELER: "Jeweler's Tools",
+    Tool.VEHICLES: "Land, Water, and Air Vehicles",
+    Tool.LEATHERWORKER: "Leatherworker's Tools",
+    Tool.MASON: "Mason's Tools",
+    Tool.MUSICAL: "Musical Instruments",
+    Tool.NAVIGATOR: "Navigator's Tools",
+    Tool.PAINTER: "Painter's Supplies",
+    Tool.POISONER: "Poisoner's Kit",
+    Tool.POTTER: "Potter's Tools",
+    Tool.SMITH: "Smith's Tools",
+    Tool.THIEVES: "Thieves' Tools",
+    Tool.TINKER: "Tinker's Tools",
+    Tool.WEAVER: "Weaver's Tools",
+    Tool.WOODCARVER: "Woodcarver's Tools"
+}
 class AbilitySet():
-    def __init__(self, strength:int=10, dexterity:int=10, constitution:int=10, intelligence:int=10,
-                    wisdom:int=10, charisma:int=10) -> None:
+    """Represents the 6 ability scores used for a player character.
+
+    Can be accessed using index notion with the corresponding Ability value.
+    """
+    def __init__(self, strength: int = 10, dexterity: int = 10, constitution: int = 10,
+                 intelligence: int = 10, wisdom: int = 10, charisma: int = 10) -> None:
+        """Initializes the AbilitySet using the provided ability values.
+
+        Args:
+            strength (int, optional): The score of Ability.STRENGTH. Defaults to 10.
+            dexterity (int, optional): The score of Ability.DEXTERITY. Defaults to 10.
+            constitution (int, optional): The score of Ability.CONSTITUTION. Defaults to 10.
+            intelligence (int, optional): The score of Ability.INTELLIGENCE. Defaults to 10.
+            wisdom (int, optional): The score of Ability.WISDOM. Defaults to 10.
+            charisma (int, optional): The score of Ability.CHARISMA. Defaults to 10.
+        """
         self.strength = int(strength)
         self.dexterity = int(dexterity)
         self.constitution = int(constitution)
@@ -193,10 +410,23 @@ class AbilitySet():
         self.wisdom = int(wisdom)
         self.charisma = int(charisma)
     
-    def __delitem__(self, key):
+    def __delitem__(self, _):
+        """Not implemented
+        """
         pass
 
     def __getitem__(self, key):
+        """Gets the specified item
+
+        Args:
+            key (Ability): The Ability score to retrieve.
+
+        Raises:
+            TypeError: key is not a valid Ability object.
+
+        Returns:
+            int: The score of the specified Ability.
+        """
         if not isinstance(key, Ability):
             raise TypeError('Key is not a valid Ability object.')
         mapping = {
@@ -210,6 +440,15 @@ class AbilitySet():
         return mapping[key]
     
     def __setitem__(self, key, value):
+        """Sets the value of the specified Ability
+
+        Args:
+            key (Ability): The Ability score to set.
+            value (int): The score to set the Ability to.
+
+        Raises:
+            TypeError: key is not a valid Ability object.
+        """
         if not isinstance(key, Ability):
             raise TypeError('Key is not a valid Ability object.')
         if key == Ability.STRENGTH:
