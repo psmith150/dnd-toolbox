@@ -1,6 +1,7 @@
 """Test the implementation of the combat.py module."""
 import unittest
-from toolbox.combat import Damage, WeaponType, Weapon, WeaponAttack, Dice, DamageType
+from toolbox.common import Dice
+from toolbox.combat import Damage, WeaponType, Weapon, WeaponAttack, DamageType
 
 class DamageTypeTestCase(unittest.TestCase):
     def test_get_values(self):

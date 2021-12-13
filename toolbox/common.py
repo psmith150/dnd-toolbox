@@ -6,9 +6,10 @@ Classes:
     Skill: Enumeration of ability based skills.
     Tool: Enumeration of skill based tools.
     AbilitySet: A collection of ability scores used by a player character.
+    Dice: Enumeration of different dice types.
 """
 from __future__ import absolute_import
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto
 
 class Ability(Enum):
     """Defines annumeration of basic abilities.
@@ -463,4 +464,86 @@ class AbilitySet():
             self.wisdom = int(value)
         elif key == Ability.CHARISMA:
             self.charisma = int(value)
+
+class Dice(IntEnum):
+    """Defines an enumeration of dice types.
+    
+    Members:
+        D0
+        D1
+        D2
+        D4
+        D6
+        D8
+        D10
+        D12
+        D20
+        D100
+    
+    Methods:
+        get_values: Return a list of string representations of the members.
+        get_display_name: Get a formatted string representation of a member.
+        convert_display_name: Convert a string representatino of a member into the member object.
+    """
+    D0 = 0
+    D1 = 1
+    D2 = 2
+    D4 = 4
+    D6 = 6
+    D8 = 8
+    D10 = 10
+    D12 = 12
+    D20 = 20
+    D100 = 100
+
+    @classmethod
+    def get_values(cls):
+        """Return a list of string representations of the class' members.
         
+        Returns:
+            A list of string representations of the class' members.
+        """
+        values = []
+        for name, _ in Dice.__members__.items():
+            values.append(name.lower())
+        return values
+
+    @classmethod
+    def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in lowercase.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
+        try:
+            display = Dice(value).name.lower()
+        except ValueError:
+            display = 'Unknown'
+        return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
+        try:
+            converted_name = name.upper()
+            value = Dice[converted_name]
+        except KeyError:
+            value = Dice.D0
+        return value

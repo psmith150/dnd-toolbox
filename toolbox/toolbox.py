@@ -1,4 +1,4 @@
-"""Implents a GUI that provides an interface to use the toolbox calculation methods.
+"""Implements a GUI that provides an interface to use the toolbox calculation methods.
 """
 from __future__ import division, absolute_import
 from math import ceil, floor
@@ -6,8 +6,8 @@ import sys
 import PySimpleGUI as sg
 from pathlib import Path
 from currency import Currency, CurrencyOptions
-from combat import WeaponType, Dice, DamageType, Weapon, Damage, WeaponAttack
-from common import Skill, Tool, Ability
+from combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
+from common import Skill, Tool, Ability, Dice
 import version
 
 #region GUI Constants
