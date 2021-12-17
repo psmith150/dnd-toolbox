@@ -9,10 +9,10 @@ Classes:
     WeaponAttack: Represents an attack made by a weapon.
 """
 from __future__ import division, absolute_import
-from enum import Enum, auto, IntEnum
+from enum import Enum, auto
 from typing import List
 from math import floor
-from .common import Dice
+from common import Dice
 
 class DamageType(Enum):
     """Defines an enumeration of damage types.

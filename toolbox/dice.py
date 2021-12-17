@@ -6,10 +6,16 @@ Classes:
 from __future__ import absolute_import, annotations
 import collections
 from enum import Enum, auto
-from .common import Dice
-from math import ceil
+from common import Dice
 
 class SpecialRoll(Enum):
+    """Defines an eumeration of special types of rolls.
+
+    Members:
+        NONE
+        DROP_LOWEST
+        DROP_HIGHEST
+    """
     NONE = auto()
     DROP_LOWEST = auto()
     DROP_HIGHEST = auto()
@@ -40,7 +46,7 @@ class DiceRoll():
             self.special_value = 0
         else:
             self.special_value = special_value
-    
+
     def min_value(self) -> int:
         """Calculates the minimum possible value of the dice roll.
 
@@ -48,14 +54,14 @@ class DiceRoll():
             int: The mimimum possible value of the dice roll.
         """
         base_val = 0 if self.die == Dice.D0 else 1
-        if (self.special == SpecialRoll.NONE):
-            return base_val * self.number + self.modifier 
-        elif (self.special == SpecialRoll.DROP_LOWEST):
-            return base_val * (self.number - self.special_value) + self.modifier  
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
-            return base_val * (self.number - self.special_value) + self.modifier 
+        if self.special == SpecialRoll.NONE:
+            return base_val * self.number + self.modifier
+        elif self.special == SpecialRoll.DROP_LOWEST:
+            return base_val * (self.number - self.special_value) + self.modifier
+        elif self.special == SpecialRoll.DROP_HIGHEST:
+            return base_val * (self.number - self.special_value) + self.modifier
         else:
-            return NotImplemented 
+            return NotImplemented
 
     def max_value(self):
         """Calculates the maximum possible value of the dice roll.
@@ -63,15 +69,15 @@ class DiceRoll():
         Returns:
             int: The maximum possible value of the dice roll.
         """
-        if (self.special == SpecialRoll.NONE):
-            return self.die.value * self.number + self.modifier 
-        elif (self.special == SpecialRoll.DROP_LOWEST):
-            return self.die.value * (self.number - self.special_value) + self.modifier  
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
-            return self.die.value * (self.number - self.special_value) + self.modifier 
+        if self.special == SpecialRoll.NONE:
+            return self.die.value * self.number + self.modifier
+        elif self.special == SpecialRoll.DROP_LOWEST:
+            return self.die.value * (self.number - self.special_value) + self.modifier
+        elif self.special == SpecialRoll.DROP_HIGHEST:
+            return self.die.value * (self.number - self.special_value) + self.modifier
         else:
-            return NotImplemented 
-    
+            return NotImplemented
+
     def average_value(self) -> float:
         """Calculates the average value of the dice roll.
 
@@ -79,9 +85,8 @@ class DiceRoll():
             float: The average value of the dice roll.
         """
         values = self.get_all_values()
-        values = [v + self.modifier for v in values]
         return sum(values) / len(values)
-    
+
     def get_probability_target(self, target: int) -> float:
         """Calculates the probability of the dice roll totaling a given value.
 
@@ -95,7 +100,7 @@ class DiceRoll():
             return 0.0
         probabilities = self.get_all_probabilities()
         return probabilities[target]
-    
+
     def get_probability_range(self, min_value: int, max_value: int) -> float:
         """Calculates the probability of the dice roll landing within a given range.
 
@@ -110,7 +115,7 @@ class DiceRoll():
             return 0.0
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
-    
+
     def get_all_probabilities(self) -> dict[int, float]:
         """Calculates the probability of rolling each possible value.
 
@@ -118,36 +123,21 @@ class DiceRoll():
             dict[int, float]: A dictionary where they keys are possible die rolls and the values are the probability of the roll.
         """
         possible_values = self.get_all_values()
-        possible_values = [v + self.modifier for v in possible_values]
         total_possible_outcomes = len(possible_values)
         outcomes = collections.Counter(possible_values)
         return {p:outcomes[p] / total_possible_outcomes for p in range(self.min_value(), self.max_value() + 1)}
-    
+
     def get_all_values(self) -> list[int]:
-        """Gets all possible values of the dice roll, not considering the modifier.
+        """Gets all possible values of the dice roll, including the modifier.
         List of all values will include all duplicates.
 
         Returns:
             list[int]: A list of all possible dice rolls.
         """
         combinations = self.get_all_combinations()
-        values = []
-        for combination in combinations:
-            values.append(sum(combination))
+        values = [sum(combination) + self.modifier for combination in combinations]
         return values
-        #return self.get_values(self.number)
 
-    # def get_values(self, number: int) -> list:
-    #     if number <= 0:
-    #         return [0]
-    #     if number == 1:
-    #         return [v for v in range(1, self.die.value + 1)]
-    #     else:
-    #         values = []
-    #         for value in range(1, self.die.value + 1):
-    #             values += [value + return_value for return_value in self.get_values(number - 1)]
-    #         return values
-    
     def get_all_combinations(self) -> list[list[int]]:
         """Gets all possible combinations of the dice, not considering the modifier.
 
@@ -155,13 +145,13 @@ class DiceRoll():
             list[list[int]]: A list of lists of dice values.
         """
         combinations = self._get_combinations(self.number)
-        if (self.special == SpecialRoll.NONE):
+        if self.special == SpecialRoll.NONE:
             pass
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
+        elif self.special == SpecialRoll.DROP_HIGHEST:
             for combination in combinations:
                 for _ in range(self.special_value):
                     combination.remove(max(combination))
-        elif (self.special == SpecialRoll.DROP_LOWEST):
+        elif self.special == SpecialRoll.DROP_LOWEST:
             for combination in combinations:
                 for _ in range(self.special_value):
                     combination.remove(min(combination))
@@ -207,7 +197,7 @@ class DiceCollection():
         self.dice = dice
         self.special = special
         self.special_value = special_value
-    
+
     def min_value(self) -> int:
         """Calculates the minimum possible value of the dice rolls.
 
@@ -215,18 +205,18 @@ class DiceCollection():
             int: The minimum possible value of the dice rolls.
         """
         values = [d.min_value() for d in self.dice]
-        if (self.special == SpecialRoll.NONE):
+        if self.special == SpecialRoll.NONE:
             return sum(values)
-        elif (self.special == SpecialRoll.DROP_LOWEST):
+        elif self.special == SpecialRoll.DROP_LOWEST:
             for _ in range(self.special_value):
                 values.remove(min(values))
             return sum(values)
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
+        elif self.special == SpecialRoll.DROP_HIGHEST:
             for _ in range(self.special_value):
                 values.remove(max(values))
             return sum(values)
         else:
-            return NotImplemented               
+            return NotImplemented
 
     def max_value(self) -> int:
         """Calculates the maximum possible value of the dice rolls.
@@ -235,19 +225,28 @@ class DiceCollection():
             int: The maximum possible value of the dice rolls.
         """
         values = [d.max_value() for d in self.dice]
-        if (self.special == SpecialRoll.NONE):
+        if self.special == SpecialRoll.NONE:
             return sum(values)
-        elif (self.special == SpecialRoll.DROP_LOWEST):
+        elif self.special == SpecialRoll.DROP_LOWEST:
             for _ in range(self.special_value):
                 values.remove(min(values))
             return sum(values)
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
+        elif self.special == SpecialRoll.DROP_HIGHEST:
             for _ in range(self.special_value):
                 values.remove(max(values))
             return sum(values)
         else:
-            return NotImplemented 
-    
+            return NotImplemented
+
+    def average_value(self) -> float:
+        """Calculates the average value of the dice rolls.
+
+        Returns:
+            float: The average value of the dice rolls.
+        """
+        values = self.get_all_values()
+        return sum(values) / len(values)
+
     def get_probability_target(self, target: int) -> float:
         """Calculates the probability of the dice rolls totaling a given value.
 
@@ -261,7 +260,7 @@ class DiceCollection():
             return 0.0
         probabilities = self.get_all_probabilities()
         return probabilities[target]
-    
+
     def get_probability_range(self, min_value: int, max_value: int) -> float:
         """Calculates the probability of the dice roll landing within a given range.
 
@@ -276,7 +275,7 @@ class DiceCollection():
             return 0.0
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
-    
+
     def get_all_probabilities(self) -> dict[int, float]:
         """Calculates the probability of rolling each possible value.
 
@@ -284,11 +283,10 @@ class DiceCollection():
             dict[int, float]: A dictionary where they keys are possible die rolls and the values are the probability of the roll.
         """
         possible_values = self.get_all_values()
-        possible_values = [v + self.modifier for v in possible_values]
         total_possible_outcomes = len(possible_values)
         outcomes = collections.Counter(possible_values)
         return {p:outcomes[p] / total_possible_outcomes for p in range(self.min_value(), self.max_value() + 1)}
-    
+
     def get_all_values(self) -> list[int]:
         """Gets all possible values of the dice rolls.
 
@@ -296,11 +294,9 @@ class DiceCollection():
             list[int]: A list of all possible dice rolls.
         """
         combinations = self.get_all_combinations()
-        values = []
-        for combination in combinations:
-            values.append(sum(combination))
+        values = [sum(combination) for combination in combinations]
         return values
-    
+
     def get_all_combinations(self) -> list[list[int]]:
         """Gets all possible combinations of the dice.
 
@@ -308,13 +304,13 @@ class DiceCollection():
             list[list[int]]: A list of lists of dice values.
         """
         combinations = self._get_combinations(self.dice)
-        if (self.special == SpecialRoll.NONE):
+        if self.special == SpecialRoll.NONE:
             pass
-        elif (self.special == SpecialRoll.DROP_HIGHEST):
+        elif self.special == SpecialRoll.DROP_HIGHEST:
             for combination in combinations:
                 for _ in range(self.special_value):
                     combination.remove(max(combination))
-        elif (self.special == SpecialRoll.DROP_LOWEST):
+        elif self.special == SpecialRoll.DROP_LOWEST:
             for combination in combinations:
                 for _ in range(self.special_value):
                     combination.remove(min(combination))
