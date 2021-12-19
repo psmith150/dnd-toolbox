@@ -3,12 +3,12 @@
 from __future__ import division, absolute_import
 from math import ceil, floor
 import sys
-import PySimpleGUI as sg
 from pathlib import Path
-from currency import Currency, CurrencyOptions
-from combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
-from common import Skill, Tool, Ability, Dice
-import version
+import PySimpleGUI as sg
+from toolbox.common import Skill, Tool, Ability, Dice
+from toolbox.currency import Currency, CurrencyOptions
+from toolbox.combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
+from toolbox import version
 
 #region GUI Constants
 #region Color Constants
@@ -187,13 +187,13 @@ def main():
             if int(values[event]) < 0:
                 window[event].update(str(0))
             split_currency(window, values)
-        
+
         if event in [SPLIT_PLATINUM_USED_KEY, SPLIT_GOLD_USED_KEY, SPLIT_ELECTRUM_USED_KEY,
                      SPLIT_SILVER_USED_KEY, SPLIT_COPPER_USED_KEY, SPLIT_CONSOLIDATE_CURRENCY_KEY]:
             split_currency(window, values)
             if event == SPLIT_CONSOLIDATE_CURRENCY_KEY:
                 window[SPLIT_CURRENCIES_USED_PANEL].update(visible=values[event])
-        
+
         if event == PARTY_SIZE_KEY:
             if not values[event]:
                 continue
@@ -204,7 +204,7 @@ def main():
             if int(values[event]) < 1:
                 window[event].update(str(1))
             split_currency(window, values)
-        
+
         if event in [MATH_PLATINUM_INPUT_1_KEY, MATH_GOLD_INPUT_1_KEY, MATH_ELECTRUM_INPUT_1_KEY,
                      MATH_SILVER_INPUT_1_KEY, MATH_COPPER_INPUT_1_KEY, MATH_PLATINUM_INPUT_2_KEY,
                      MATH_GOLD_INPUT_2_KEY, MATH_ELECTRUM_INPUT_2_KEY, MATH_SILVER_INPUT_2_KEY, 
@@ -219,7 +219,7 @@ def main():
             if int(values[event]) < 0:
                 window[event].update(str(0))
             calculate_currency(window, values)
-        
+
         if event in [MATH_PLATINUM_USED_KEY, MATH_GOLD_USED_KEY, MATH_ELECTRUM_USED_KEY,
                      MATH_SILVER_USED_KEY, MATH_COPPER_USED_KEY, MATH_CONSOLIDATE_CURRENCY_KEY,
                      MATH_OPERATION_KEY]:
@@ -231,7 +231,7 @@ def main():
         #region Downtime screen events
         if event == DOWNTIME_TABS_KEY:
             init_active_downtime_panel(window, values)
-        
+
         if event in [DOWNTIME_STRENGTH_INPUT_KEY, DOWNTIME_DEXTERITY_INPUT_KEY,
                      DOWNTIME_CONSTITUTION_INPUT_KEY, DOWNTIME_INTELLIGENCE_INPUT_KEY,
                      DOWNTIME_WISDOM_INPUT_KEY, DOWNTIME_CHARISMA_INPUT_KEY]:
@@ -245,7 +245,7 @@ def main():
             if int(values[event]) < 1:
                 window[event].update(str(1))
             init_active_downtime_panel(window, values)
-        
+
         if event == DOWNTIME_PROFICIENCY_BONUS_INPUT_KEY:
             # Input validation
             if not values[event]:
@@ -257,17 +257,17 @@ def main():
             if int(values[event]) < 2:
                 window[event].update(str(2))
             calculate_tool_training(window, values)
-        
+
         if event == DOWNTIME_SKILL_INPUT_KEY:
             calculate_skill_training(window, values)
-        
+
         if event == DOWNTIME_TOOL_INPUT_KEY:
             show_tool_skills(window, values)
             calculate_tool_training(window, values)
-        
+
         if event in DOWNTIME_TOOL_SKILL_PROFICIENCY_KEYS:
             calculate_tool_training(window, values)
-        
+
         if event in DOWNTIME_TOOL_SKILL_BONUS_KEYS:
             # Input validation
             if not values[event]:
@@ -279,17 +279,17 @@ def main():
             if int(values[event]) < 0:
                 window[event].update(0)
             calculate_tool_training(window, values)
-        
+
         if event in [DOWNTIME_WEAPON_STRENGTH_KEY, DOWNTIME_WEAPON_DEXTERITY_KEY]:
             calculate_weapon_training(window, values)
-        
+
         if event in [DOWNTIME_ARMOR_LIGHT_KEY, DOWNTIME_ARMOR_MEDIUM_KEY,
                      DOWNTIME_ARMOR_HEAVY_KEY]:
             calculate_armor_training(window, values)
-        #endregion  
-    
+        #endregion
+
     window.close()
-    
+
 
 def main_window() -> sg.Window:
     """Create the main window used by the GUI.
@@ -335,7 +335,7 @@ def set_theme():
     sg.theme_progress_bar_border_width()
     sg.theme_progress_bar_color()
     sg.theme_slider_border_width()
-    sg.theme_slider_color
+    sg.theme_slider_color()
     sg.theme_text_color()
     sg.theme_text_element_background_color()
 

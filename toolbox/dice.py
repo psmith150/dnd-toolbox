@@ -6,7 +6,8 @@ Classes:
 from __future__ import absolute_import, annotations
 import collections
 from enum import Enum, auto
-from common import Dice
+from typing import List, Dict
+from .common import Dice
 
 class SpecialRoll(Enum):
     """Defines an eumeration of special types of rolls.
@@ -116,7 +117,7 @@ class DiceRoll():
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
 
-    def get_all_probabilities(self) -> dict[int, float]:
+    def get_all_probabilities(self) -> Dict[int, float]:
         """Calculates the probability of rolling each possible value.
 
         Returns:
@@ -127,7 +128,7 @@ class DiceRoll():
         outcomes = collections.Counter(possible_values)
         return {p:outcomes[p] / total_possible_outcomes for p in range(self.min_value(), self.max_value() + 1)}
 
-    def get_all_values(self) -> list[int]:
+    def get_all_values(self) -> List[int]:
         """Gets all possible values of the dice roll, including the modifier.
         List of all values will include all duplicates.
 
@@ -138,7 +139,7 @@ class DiceRoll():
         values = [sum(combination) + self.modifier for combination in combinations]
         return values
 
-    def get_all_combinations(self) -> list[list[int]]:
+    def get_all_combinations(self) -> List[List[int]]:
         """Gets all possible combinations of the dice, not considering the modifier.
 
         Returns:
@@ -159,7 +160,7 @@ class DiceRoll():
             return NotImplemented
         return combinations
 
-    def _get_combinations(self, number: int) -> list[list[int]]:
+    def _get_combinations(self, number: int) -> List[List[int]]:
         """Gets all possible combinations of the specified number of dice, not considering the modifier.
 
         Args:
@@ -185,7 +186,7 @@ class DiceCollection():
     """
     Represents a collection of DiceRoll objects.
     """
-    def __init__(self, dice: list[DiceRoll], special: SpecialRoll = SpecialRoll.NONE,
+    def __init__(self, dice: List[DiceRoll], special: SpecialRoll = SpecialRoll.NONE,
         special_value: int = 0) -> None:
         """Initializes the DiceCollection object with the given parameters.
 
@@ -276,7 +277,7 @@ class DiceCollection():
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
 
-    def get_all_probabilities(self) -> dict[int, float]:
+    def get_all_probabilities(self) -> Dict[int, float]:
         """Calculates the probability of rolling each possible value.
 
         Returns:
@@ -287,7 +288,7 @@ class DiceCollection():
         outcomes = collections.Counter(possible_values)
         return {p:outcomes[p] / total_possible_outcomes for p in range(self.min_value(), self.max_value() + 1)}
 
-    def get_all_values(self) -> list[int]:
+    def get_all_values(self) -> List[int]:
         """Gets all possible values of the dice rolls.
 
         Returns:
@@ -297,7 +298,7 @@ class DiceCollection():
         values = [sum(combination) for combination in combinations]
         return values
 
-    def get_all_combinations(self) -> list[list[int]]:
+    def get_all_combinations(self) -> List[List[int]]:
         """Gets all possible combinations of the dice.
 
         Returns:
@@ -318,7 +319,7 @@ class DiceCollection():
             return NotImplemented
         return combinations
 
-    def _get_combinations(self, dice: list[DiceRoll]) -> list[list[int]]:
+    def _get_combinations(self, dice: List[DiceRoll]) -> List[List[int]]:
         """Gets all possible combinations of the specified dice.
 
         Args:
@@ -327,7 +328,7 @@ class DiceCollection():
         Returns:
             list[list[int]]: A list of lists of dice values.
         """
-        if len(dice) <= 0:
+        if not dice:
             return [0]
         if len(dice) == 1:
             return [[v] for v in dice[0].get_all_values()]

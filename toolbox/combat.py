@@ -12,7 +12,7 @@ from __future__ import division, absolute_import
 from enum import Enum, auto
 from typing import List
 from math import floor
-from common import Dice
+from .common import Dice
 
 class DamageType(Enum):
     """Defines an enumeration of damage types.
@@ -508,3 +508,4 @@ class WeaponAttack:
             The calculated average damage of a critical hit.
         """
         return self.weapon.average_critical_damage() + self.attack_mod + self.damage_mod
+        
