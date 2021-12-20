@@ -142,8 +142,7 @@ NUM_DICE_PANELS = 3
 DICE_CALCULATION_EVENTS = [DICE_NUMBER_OF_DICE_KEY, DICE_DIE_TYPE_KEY, DICE_MODIFIER_KEY,
                             DICE_SPECIAL_ROLL_KEY, DICE_SPECIAL_VALUE_KEY, DICE_COLLECTION_SPECIAL_ROLL_KEY,
                             DICE_COLLECTION_SPECIAL_VALUE_KEY, DICE_ADD_DICE_KEY, DICE_REMOVE_DICE_KEY,
-                            DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY,
-                            DICE_CALCULATION_KEY]
+                            DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY]
 dice_canvas = None
 
 def main():
@@ -386,6 +385,9 @@ def main():
                 splits = event.split('-')
                 update_index = int(splits[-2])
                 update_dice_roll(window, values, update_index)
+        
+        if event == DICE_CALCULATION_KEY:
+            update_dice_results(window, values)
         #endregion
 
     window.close()
@@ -1523,9 +1525,19 @@ def update_dice_roll(window: sg.Window, values: dict, index: int):
         if not window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].visible:
             window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=True, value=0)
     _, values = window.read(timeout=0)
-    update_dice_collection(window, values)
 
 def update_dice_collection(window: sg.Window, values: dict):
+    target_type = DiceTarget.convert_display_name(values[DICE_TARGET_KEY])
+    if target_type == DiceTarget.BETWEEN:
+        if not window[DICE_TARGET_VALUE2_KEY].visible:
+            window[DICE_TARGET_VALUE2_KEY].update(visible=True, value = values[DICE_TARGET_VALUE1_KEY])
+    else:
+        if window[DICE_TARGET_VALUE2_KEY].visible:
+            window[DICE_TARGET_VALUE2_KEY].update(visible=False)
+    
+    _, values = window.read(timeout=0)
+
+def update_dice_results(window: sg.Window, values: dict):
     dice_rolls = []
     for dice_index in range(NUM_DICE_PANELS):
         col = window[f'{DICE_PANEL_KEY}-{dice_index+1}-']
@@ -1537,18 +1549,9 @@ def update_dice_collection(window: sg.Window, values: dict):
             special_value = int(values[f'{DICE_SPECIAL_VALUE_KEY}-{dice_index+1}-'])
             dice_rolls.append(DiceRoll(die_type, num_dice, modifier, special_roll, special_value))
     collection = DiceCollection(dice_rolls)
-
-    target_type = DiceTarget.convert_display_name(values[DICE_TARGET_KEY])
-    if target_type == DiceTarget.BETWEEN:
-        if not window[DICE_TARGET_VALUE2_KEY].visible:
-            window[DICE_TARGET_VALUE2_KEY].update(visible=True, value = values[DICE_TARGET_VALUE1_KEY])
-    else:
-        if window[DICE_TARGET_VALUE2_KEY].visible:
-            window[DICE_TARGET_VALUE2_KEY].update(visible=False)
-    
-    _, values = window.read(timeout=0)
     
     probability = 0.0
+    target_type = DiceTarget.convert_display_name(values[DICE_TARGET_KEY])
     if (target_type == DiceTarget.EQUAL_TO):
         probability = collection.get_probability_target(int(values[DICE_TARGET_VALUE1_KEY]))
     elif (target_type == DiceTarget.LESS_THAN):
@@ -1564,6 +1567,7 @@ def update_dice_collection(window: sg.Window, values: dict):
     
     window[DICE_PROBABILITY_RESULT_KEY].update(value="{:0.2%}".format(probability))
     graph_dice_probability(window, collection)
+
 
 def graph_dice_probability(window: sg.Window, dice: DiceCollection):
     global dice_canvas
