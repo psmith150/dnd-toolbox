@@ -5,6 +5,8 @@ from math import ceil, floor
 import sys
 from pathlib import Path
 import PySimpleGUI as sg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from toolbox.common import Skill, Tool, Ability, Dice
 from toolbox.currency import Currency, CurrencyOptions
 from toolbox.combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
@@ -121,6 +123,7 @@ DICE_TARGET_VALUE1_KEY = '-dice-target-value-1-'
 DICE_TARGET_VALUE2_KEY = '-dice-target-value-2-'
 DICE_CALCULATION_KEY = '-dice-calculate-'
 DICE_PROBABILITY_RESULT_KEY = '-dice-probability-result-'
+DICE_PROBABILITY_GRAPH_KEY = '-dice-probability-graph-'
 SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator']
 #endregion
 
@@ -141,6 +144,7 @@ DICE_CALCULATION_EVENTS = [DICE_NUMBER_OF_DICE_KEY, DICE_DIE_TYPE_KEY, DICE_MODI
                             DICE_COLLECTION_SPECIAL_VALUE_KEY, DICE_ADD_DICE_KEY, DICE_REMOVE_DICE_KEY,
                             DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY,
                             DICE_CALCULATION_KEY]
+dice_canvas = None
 
 def main():
     """The main calling program that displays the GUI and handles events.
@@ -1036,7 +1040,8 @@ def dice_roll_panel(index: int, visible: bool = False) -> sg.Column:
 
 def dice_result_panel() -> sg.Column:
     layout =[
-        [sg.Text('0.00%', size=(6,1), key=DICE_PROBABILITY_RESULT_KEY, justification='center')]
+        [sg.Text('0.00%', size=(6,1), key=DICE_PROBABILITY_RESULT_KEY, justification='center')],
+        [sg.Canvas(key=DICE_PROBABILITY_GRAPH_KEY)]
     ]
     return sg.Column(layout, element_justification='center')
 #endregion
@@ -1177,7 +1182,6 @@ def update_weapon_summary(window: sg.Window):
         summary = f'Weapon 2 deals {"{:0.2%}".format(difference)} more damage than weapon 1'
     window[WEAPON_SUMMARY_KEY].update(value=summary)
     window[WEAPON_SUMMARY_KEY].expand(expand_x=True)
-
 
 def init_combat_panel(window: sg.Window, values: dict):
     """Initialize the combat screen by evaluating the current data.
@@ -1559,6 +1563,27 @@ def update_dice_collection(window: sg.Window, values: dict):
         raise NotImplementedError()
     
     window[DICE_PROBABILITY_RESULT_KEY].update(value="{:0.2%}".format(probability))
+    graph_dice_probability(window, collection)
+
+def graph_dice_probability(window: sg.Window, dice: DiceCollection):
+    global dice_canvas
+    try:
+        dice_canvas.get_tk_widget().pack_forget()
+    except AttributeError:
+        pass
+    except UnboundLocalError:
+        pass
+    fig = Figure(figsize=(5,4), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Total Roll')
+    ax.set_ylabel('Probability')
+    probabilities = dice.get_all_probabilities()
+    ax.bar(probabilities.keys(), probabilities.values())
+    canvas = window[DICE_PROBABILITY_GRAPH_KEY].TKCanvas
+    canvas.delete('all')
+    dice_canvas = FigureCanvasTkAgg(fig, canvas)
+    dice_canvas.get_tk_widget().pack(side='top', fill='both', expand=1)
+    dice_canvas.draw()
 
 def init_dice_panel(window: sg.Window, values: dict):
     """Initialize the dice screen by evaluating the current data.
