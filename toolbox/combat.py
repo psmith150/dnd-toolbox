@@ -344,7 +344,7 @@ class Weapon:
         WeaponType.WARHAMMER2H: Damage(1, Dice.D10, DamageType.BLUDGEONING),
         WeaponType.WHIP: Damage(1, Dice.D4, DamageType.SLASHING),
         WeaponType.BLOWGUN: Damage(1, Dice.D1, DamageType.PIERCING),
-        WeaponType.LIGHT_CROSSBOW: Damage(1, Dice.D6, DamageType.PIERCING),
+        WeaponType.HAND_CROSSBOW: Damage(1, Dice.D6, DamageType.PIERCING),
         WeaponType.HEAVY_CROSSBOW: Damage(1, Dice.D10, DamageType.PIERCING),
         WeaponType.LONGBOW: Damage(1, Dice.D8, DamageType.PIERCING),
         WeaponType.NET: Damage(1, Dice.D0, DamageType.SLASHING),

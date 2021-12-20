@@ -280,3 +280,11 @@ class DiceCollectionTestCase(TestCase):
     def test_get_probability_target_multiple_dice(self):
         roll = DiceCollection([DiceRoll(Dice.D6), DiceRoll(Dice.D6)])
         self.assertAlmostEqual(roll.get_probability_target(8), 5/36)
+    
+    def test_get_probability_range_single_die(self):
+        roll = DiceCollection([DiceRoll(Dice.D100)])
+        self.assertAlmostEqual(roll.get_probability_range(51, 100), 50/100)
+    
+    def test_get_probability_range_multiple_dice(self):
+        roll = DiceCollection([DiceRoll(Dice.D6), DiceRoll(Dice.D6)])
+        self.assertAlmostEqual(roll.get_probability_range(8,10), 12/36)

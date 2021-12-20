@@ -8,6 +8,7 @@ import PySimpleGUI as sg
 from toolbox.common import Skill, Tool, Ability, Dice
 from toolbox.currency import Currency, CurrencyOptions
 from toolbox.combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
+from toolbox.dice import SpecialRoll, DiceRoll, DiceCollection
 from toolbox import version
 
 #region GUI Constants
@@ -25,6 +26,7 @@ TAB_SELECTED_BACKGROUND_COLOR = '#64778D'
 COMBAT_SCREEN_KEY = '-screen-0-'
 CURRENCY_SCREEN_KEY = '-screen-1-'
 DOWNTIME_SCREEN_KEY = '-screen-2-'
+DICE_SCREEN_KEY = '-screen-3-'
 WEAPON_TYPE_KEY = '-weapon-type-'
 WEAPON_BONUS_KEY = '-weapon-bonus-'
 EXIT_BUTTON_KEY = '-exit-'
@@ -104,7 +106,18 @@ DOWNTIME_ARMOR_LIGHT_KEY = '-downtime-armor-light-'
 DOWNTIME_ARMOR_MEDIUM_KEY = '-downtime-armor-medium-'
 DOWNTIME_ARMOR_HEAVY_KEY = '-downtime-armor-heavy-'
 DOWNTIME_RESULT_KEY = '-downtime-result-'
-SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training']
+DICE_PANEL_KEY = '-dice-panel-'
+DICE_NUMBER_OF_DICE_KEY = '-dice-number-'
+DICE_DIE_TYPE_KEY = '-dice-type-'
+DICE_MODIFIER_KEY = '-dice-modifier-'
+DICE_SPECIAL_ROLL_KEY = '-dice-special-'
+DICE_SPECIAL_VALUE_KEY = '-dice-special-value-'
+DICE_COLLECTION_SPECIAL_ROLL_KEY = '-dice-collection-special-'
+DICE_COLLECTION_SPECIAL_VALUE_KEY = '-dice-collection-special-value-'
+DICE_ADD_DICE_KEY = '-dice-add-'
+DICE_REMOVE_DICE_KEY = '-dice-remove-'
+DICE_CALCULATION_KEY = '-dice-calculate-'
+SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator']
 #endregion
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
@@ -116,6 +129,8 @@ DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
 NUM_DAMAGE_PANELS = 3
 
 BASE_DOWNTIME_DAYS = 250
+
+NUM_DICE_PANELS = 3
 
 def main():
     """The main calling program that displays the GUI and handles events.
@@ -139,6 +154,7 @@ def main():
             init_combat_panel(window, values)
             init_currency_panel(window, values)
             init_downtime_panel(window, values)
+            init_dice_panel(window, values)
         if event == sg.WINDOW_CLOSED or event == EXIT_BUTTON_KEY:
             break
 
@@ -288,6 +304,14 @@ def main():
             calculate_armor_training(window, values)
         #endregion
 
+        #region Dice screen events
+        if DICE_ADD_DICE_KEY in event:
+            add_dice_roll(window)
+
+        if DICE_REMOVE_DICE_KEY in event:
+            remove_dice_roll(window)
+        #endregion
+
     window.close()
 
 
@@ -312,7 +336,7 @@ def main_window() -> sg.Window:
     layout = [
         [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat',
                   size=(20, 1), pad=(0, 8))],
-        [combat_panel(True), currency_panel(False), downtime_panel(False)],
+        [combat_panel(True), currency_panel(False), downtime_panel(False), dice_panel(False)],
         [sg.Exit(key=EXIT_BUTTON_KEY, size=(12, 1))],
         [bottom_bar]
     ]
@@ -841,6 +865,96 @@ def downtime_armor_panel() -> sg.Tab:
 
 #endregion
 
+#region Dice Calculation Screen
+def dice_panel(visible: bool = False) -> sg.Column:
+    """Create the dice screen shown in the GUI.
+
+    The screen consists of a section for defining individual groups of dice, and a
+    section for displaying probability distributions.
+
+    Args:
+        visible (bool, optional): If True, the screen will start as visible. Defaults to False.
+
+    Returns:
+        sg.Column: The created Column object.
+    """
+    layout = [
+        [dice_collection_panel()],
+        [sg.HorizontalSeparator()],
+        [sg.Button('Calculate', key=DICE_CALCULATION_KEY, enable_events=True, size=(20,1))]
+    ]
+
+    return sg.Column(layout, key=DICE_SCREEN_KEY, visible=visible, element_justification='center')
+
+def dice_collection_panel() -> sg.Column:
+    """Create a section for defining a collection of dice rolls in the dice screen.
+
+    The dice collection section consists of a variable number of panels for configuring
+    dice rolls, a selection of a special roll modifier, and a value associated with the
+    selected special roll modifer.
+
+    Returns:
+        sg.Column: The created Column object.
+    """
+    weapon_values = WeaponType.get_values()
+    weapon_values.sort()
+    layout = [[]]
+    dice_roll_panels = []
+    for panel in range(NUM_DICE_PANELS):
+        dice_roll_panels.append([dice_roll_panel(panel + 1, panel == 0)])
+    
+    layout += [
+        [sg.Frame('Dice Rolls', dice_roll_panels)],
+    ]
+
+    layout += [[sg.Column(layout=[[sg.Button('Add Dice',
+                                            key=DICE_ADD_DICE_KEY,
+                                            size=(12, 1))]]),
+               sg.Column(layout=[[sg.Button('Remove Dice',
+                                            key=DICE_REMOVE_DICE_KEY,
+                                            visible=False, size=(12, 1))]])]]
+
+    return sg.Column(layout, expand_y=True, element_justification='center')
+
+def dice_roll_panel(index: int, visible: bool = False) -> sg.Column:
+    """Create a section for defining a dice roll in the dice screen.
+
+    The weapon definition area consists of inputs for the dice type, the number of dice,
+    a static modifier to the roll, a selection of special roll modifiers, and a value
+    associated with the chosen special roll.
+
+    Args:
+        index (int): The index of the panel. Must be unique.
+
+    Returns:
+        sg.Column: The created Column object.
+    """
+    layout = [
+        [sg.Text('Number of dice:', size=(15, 1), justification='left'),
+         sg.Spin([i for i in range(0, 20)], initial_value=1,
+                 key=f'{DICE_NUMBER_OF_DICE_KEY}-{index}-',
+                 enable_events=True, size=(5, 1), auto_size_text=False)],
+        [sg.Text('Die type:', size=(15, 1), justification='left'),
+         sg.Combo(Dice.get_values(), default_value=Dice.get_display_name(Dice.D20),
+                  key=f'{DICE_DIE_TYPE_KEY}-{index}-', enable_events=True,
+                  readonly=True, size=(5, 1))],
+        [sg.Text('Modifier:', size=(15, 1), justification='left'),
+         sg.Spin([i for i in range(0, 10)], initial_value=0,
+                 key=f'{DICE_MODIFIER_KEY}-{index}-', enable_events=True,
+                 size=(5, 1), auto_size_text=False)],
+        [sg.Text('Special:', size=(15, 1), justification='left'),
+         sg.Combo(SpecialRoll.get_values(),
+                  default_value=SpecialRoll.get_display_name(SpecialRoll.NONE),
+                  key=f'{DICE_SPECIAL_ROLL_KEY}-{index}-',
+                  enable_events=True, readonly=True, size=(12, 1)),
+         sg.Input('0', key=f'{DICE_SPECIAL_VALUE_KEY}-{index}-', enable_events=True,
+                  size=(5,1))]
+    ]
+
+    return sg.Column(layout, key=f'{DICE_PANEL_KEY}-{index}-',
+                     visible=visible)
+#endregion
+
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
     """Change the active screen being displayed in the window.
 
@@ -1248,5 +1362,102 @@ def show_tool_skills(window: sg.Window, values: dict):
 
 
 #endregion
+
+#region Dice Calculation Screen Functions
+def add_dice_roll(window: sg.Window):
+    """Adds a new weapon damage section to the combat screen
+
+    Args:
+        window (sg.Window): The Window containing the combat screen.
+    """
+    # Find first hidden panel
+    next_index = -1
+    for index in range(NUM_DICE_PANELS):
+        col = window[f'{DICE_PANEL_KEY}-{index+1}-']
+        if not col.visible:
+            next_index = index
+            break
+    if next_index < 0:
+        window[DICE_ADD_DICE_KEY].update(visible=False)
+        return
+    col = window[f'{DICE_PANEL_KEY}-{next_index+1}-']
+    col.unhide_row()
+    col.update(visible=True)
+    window[f'{DICE_NUMBER_OF_DICE_KEY}-{next_index+1}-'].update(value=1)
+    window[f'{DICE_DIE_TYPE_KEY}-{next_index+1}-'].update(value=Dice.get_display_name(Dice.D6))
+    window[f'{DICE_MODIFIER_KEY}-{next_index+1}-'].update(value=0)
+    window[f'{DICE_SPECIAL_ROLL_KEY}-{next_index+1}-'].update(value=SpecialRoll.get_display_name(SpecialRoll.NONE))
+    window[f'{DICE_SPECIAL_VALUE_KEY}-{next_index+1}-'].update(value=0)
+    window[DICE_REMOVE_DICE_KEY].update(visible=True)
+    if next_index == NUM_DAMAGE_PANELS - 1:
+        window[DICE_ADD_DICE_KEY].update(visible=False)
+    window.refresh()
+
+def remove_dice_roll(window: sg.Window):
+    """Removes a weapon damage section from the combat screen
+
+    Args:
+        window (sg.Window): The Window containing the combat screen.
+        parent_index (int): The index of the weapon section containing the damage section.
+    """
+    # Find last visible panel
+    next_index = -1
+    for index in range(NUM_DICE_PANELS, 0, -1):
+        col = window[f'{DICE_PANEL_KEY}-{index}-']
+        if col.visible:
+            next_index = index
+            break
+    if next_index <= 1:
+        window[DICE_REMOVE_DICE_KEY].update(visible=False)
+        return
+    col = window[f'{DICE_PANEL_KEY}-{next_index}-']
+    col.hide_row()
+    col.update(visible=False)
+    window[DICE_ADD_DICE_KEY].update(visible=True)
+    if next_index == 2:
+        window[DICE_REMOVE_DICE_KEY].update(visible=False)
+    window.refresh()
+
+def update_dice_roll(window: sg.Window, values: dict, index: int):
+    """Calculate the properties of a WeaponAttack and display them on the combat screen.
+
+    Args:
+        window (sg.Window): The Window containing the combat screen.
+        values (dict): The values of the last window read.
+        index (int): The index of the weapon section to calculate for.
+    """
+    special_roll = values[f'{DICE_SPECIAL_ROLL_KEY}-{index}-']
+    if special_roll == SpecialRoll.NONE:
+        window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=False)
+    else:
+        window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=True, value=0)
+    _, values = window.read(timeout=0)
+    update_dice_collection(window, values)
+
+def update_dice_collection(window: sg.Window, values: dict):
+    for dice_index in range(NUM_DICE_PANELS):
+        col = window[f'{DICE_PANEL_KEY}-{dice_index+1}-']
+        dice_rolls = []
+        if col.visible:
+            num_dice = int(values[f'{DICE_NUMBER_OF_DICE_KEY}-{dice_index+1}-'])
+            die_type = Dice.convert_display_name(values[f'{DICE_DIE_TYPE_KEY}-{dice_index+1}-'])
+            modifier = int(values[f'{DICE_MODIFIER_KEY}-{dice_index+1}-'])
+            special_roll = SpecialRoll.convert_display_name(values[f'{DICE_SPECIAL_ROLL_KEY}-{dice_index+1}-'])
+            special_value = int(values[f'{DICE_SPECIAL_VALUE_KEY}-{dice_index+1}-'])
+            dice_rolls.append(DiceRoll(die_type, num_dice, modifier, special_roll, special_value))
+        collection = DiceCollection(dice_rolls)
+
+def init_dice_panel(window: sg.Window, values: dict):
+    """Initialize the combat screen by evaluating the current data.
+
+    Args:
+        window (sg.Window): The Window containing the combat screen.
+        values (dict): The values of the last window read.
+    """
+    for update_index in range(1, NUM_DICE_PANELS+1):
+        update_dice_roll(window, values, update_index)
+
+#endregion
+
 if __name__ == "__main__":
     main()

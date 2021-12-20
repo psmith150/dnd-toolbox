@@ -23,6 +23,58 @@ class SpecialRoll(Enum):
     # TODO REPLACE_LOWER = auto()
     # TODO REPLACE_HIGHER = auto()
 
+    @classmethod
+    def get_values(cls):
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
+        values = []
+        for value in SpecialRoll.__members__.values():
+            values.append(SpecialRoll.get_display_name(value))
+        return values
+
+    @classmethod
+    def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in titlecase.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
+        try:
+            display = SpecialRoll(value).name.replace('_', ' ').title()
+        except ValueError:
+            display = 'Unknown'
+        return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
+        try:
+            converted_name = name.replace(' ', '_').upper()
+            value = SpecialRoll[converted_name]
+        except KeyError:
+            value = SpecialRoll.NONE
+        return value
+
 class DiceRoll():
     """Represents a roll of a number of same-sided dice.
     """
