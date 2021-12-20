@@ -159,13 +159,17 @@ class DiceRoll():
 
         Args:
             min_value (int): The minimum value of the range (inclusive).
-            max_value (int): The maximum value of the range (exclusive).
+            max_value (int): The maximum value of the range (inclusive).
 
         Returns:
             float: The probability of the total roll being within the range.
         """
-        if min_value < self.min_value() or max_value > self.max_value() or min_value > max_value:
+        if min_value > max_value:
             return 0.0
+        if min_value < self.min_value():
+            min_value = self.min_value()
+        if max_value > self.max_value():
+            max_value = self.max_value()
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
 
@@ -319,13 +323,17 @@ class DiceCollection():
 
         Args:
             min_value (int): The minimum value of the range (inclusive).
-            max_value (int): The maximum value of the range (exclusive).
+            max_value (int): The maximum value of the range (inclusive).
 
         Returns:
             float: The probability of the total roll being within the range.
         """
-        if min_value < self.min_value() or max_value > self.max_value() or min_value > max_value:
+        if min_value > max_value:
             return 0.0
+        if min_value < self.min_value():
+            min_value = self.min_value()
+        if max_value > self.max_value():
+            max_value = self.max_value()
         probabilities = self.get_all_probabilities()
         return sum([probabilities[p] for p in probabilities.keys() if min_value <= p <= max_value])
 
@@ -381,7 +389,7 @@ class DiceCollection():
             list[list[int]]: A list of lists of dice values.
         """
         if not dice:
-            return [0]
+            return [[0]]
         if len(dice) == 1:
             return [[v] for v in dice[0].get_all_values()]
         else:
@@ -391,3 +399,62 @@ class DiceCollection():
                 for combination in self._get_combinations(dice[1:]):
                     values.append([value] + combination)
             return values
+
+class DiceTarget(Enum):
+    EQUAL_TO = auto()
+    LESS_THAN = auto()
+    GREATER_THAN = auto()
+    BETWEEN = auto()
+    NOT_EQUAL_TO = auto()
+
+    @classmethod
+    def get_values(cls):
+        """Return a list of string representations of the class' members.
+        
+        Returns:
+            A list of string representations of the class' members.
+        """
+        values = []
+        for value in DiceTarget.__members__.values():
+            values.append(DiceTarget.get_display_name(value))
+        return values
+
+    @classmethod
+    def get_display_name(cls, value):
+        """Return a string representation of a member.
+
+        Members are represented by the member name in titlecase.
+        
+        Args:
+            value:
+                A member of the class.
+        
+        Returns:
+            A string representing the member.
+        """
+        try:
+            display = DiceTarget(value).name.replace('_', ' ').title()
+        except ValueError:
+            display = 'Unknown'
+        return display
+    
+    @classmethod
+    def convert_display_name(cls, name):
+        """Convert a string name into the corresponding class name.
+
+        Strings are converted by transforming the string into uppercase
+        and matching the result against all members.
+        
+        Args:
+            name:
+                The name to convert.
+        
+        Returns:
+            The matching member.
+        """
+        try:
+            converted_name = name.replace(' ', '_').upper()
+            value = DiceTarget[converted_name]
+        except KeyError:
+            value = DiceTarget.EQUAL_TO
+        return value

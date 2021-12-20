@@ -8,7 +8,7 @@ import PySimpleGUI as sg
 from toolbox.common import Skill, Tool, Ability, Dice
 from toolbox.currency import Currency, CurrencyOptions
 from toolbox.combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
-from toolbox.dice import SpecialRoll, DiceRoll, DiceCollection
+from toolbox.dice import DiceTarget, SpecialRoll, DiceRoll, DiceCollection
 from toolbox import version
 
 #region GUI Constants
@@ -107,16 +107,20 @@ DOWNTIME_ARMOR_MEDIUM_KEY = '-downtime-armor-medium-'
 DOWNTIME_ARMOR_HEAVY_KEY = '-downtime-armor-heavy-'
 DOWNTIME_RESULT_KEY = '-downtime-result-'
 DICE_PANEL_KEY = '-dice-panel-'
-DICE_NUMBER_OF_DICE_KEY = '-dice-number-'
-DICE_DIE_TYPE_KEY = '-dice-type-'
-DICE_MODIFIER_KEY = '-dice-modifier-'
-DICE_SPECIAL_ROLL_KEY = '-dice-special-'
-DICE_SPECIAL_VALUE_KEY = '-dice-special-value-'
+DICE_NUMBER_OF_DICE_KEY = '-dice-number'
+DICE_DIE_TYPE_KEY = '-dice-type'
+DICE_MODIFIER_KEY = '-dice-modifier'
+DICE_SPECIAL_ROLL_KEY = '-dice-special'
+DICE_SPECIAL_VALUE_KEY = '-dice-special-value'
 DICE_COLLECTION_SPECIAL_ROLL_KEY = '-dice-collection-special-'
 DICE_COLLECTION_SPECIAL_VALUE_KEY = '-dice-collection-special-value-'
 DICE_ADD_DICE_KEY = '-dice-add-'
 DICE_REMOVE_DICE_KEY = '-dice-remove-'
+DICE_TARGET_KEY = '-dice-target-'
+DICE_TARGET_VALUE1_KEY = '-dice-target-value-1-'
+DICE_TARGET_VALUE2_KEY = '-dice-target-value-2-'
 DICE_CALCULATION_KEY = '-dice-calculate-'
+DICE_PROBABILITY_RESULT_KEY = '-dice-probability-result-'
 SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator']
 #endregion
 
@@ -131,6 +135,12 @@ NUM_DAMAGE_PANELS = 3
 BASE_DOWNTIME_DAYS = 250
 
 NUM_DICE_PANELS = 3
+
+DICE_CALCULATION_EVENTS = [DICE_NUMBER_OF_DICE_KEY, DICE_DIE_TYPE_KEY, DICE_MODIFIER_KEY,
+                            DICE_SPECIAL_ROLL_KEY, DICE_SPECIAL_VALUE_KEY, DICE_COLLECTION_SPECIAL_ROLL_KEY,
+                            DICE_COLLECTION_SPECIAL_VALUE_KEY, DICE_ADD_DICE_KEY, DICE_REMOVE_DICE_KEY,
+                            DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY,
+                            DICE_CALCULATION_KEY]
 
 def main():
     """The main calling program that displays the GUI and handles events.
@@ -198,6 +208,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) >= int(1e9):
                 window[event].update(str(int(1e9)-1))
             if int(values[event]) < 0:
@@ -215,6 +226,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) > 20:
                 window[event].update(str(20))
             if int(values[event]) < 1:
@@ -230,6 +242,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) >= int(1e9):
                 window[event].update(str(int(1e9)-1))
             if int(values[event]) < 0:
@@ -256,6 +269,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) > 30:
                 window[event].update(str(int(30)))
             if int(values[event]) < 1:
@@ -268,6 +282,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) > 6:
                 window[event].update(str(6))
             if int(values[event]) < 2:
@@ -290,6 +305,7 @@ def main():
                 continue
             if values[event][-1] not in '0123456789':
                 window[event].update(values[event][:-1])
+                continue
             if int(values[event]) > 20:
                 window[event].update(str(20))
             if int(values[event]) < 0:
@@ -305,11 +321,67 @@ def main():
         #endregion
 
         #region Dice screen events
-        if DICE_ADD_DICE_KEY in event:
+        if event == DICE_ADD_DICE_KEY:
             add_dice_roll(window)
 
-        if DICE_REMOVE_DICE_KEY in event:
+        if event == DICE_REMOVE_DICE_KEY:
             remove_dice_roll(window)
+        
+        if DICE_NUMBER_OF_DICE_KEY in event:
+            # Input validation
+            if not values[event]:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+                continue
+            if int(values[event]) >= 100:
+                window[event].update(str(99))
+            if int(values[event]) <= 0:
+                window[event].update(str(1))
+
+        if DICE_MODIFIER_KEY in event:
+            # Input validation
+            if not values[event]:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+                continue
+            if int(values[event]) >= 100:
+                window[event].update(str(99))
+            if int(values[event]) <= -100:
+                window[event].update(str(-99))
+        
+        if DICE_SPECIAL_VALUE_KEY in event:
+            # Input validation
+            if not values[event]:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+                continue
+            num_dice = int(values[event.replace(DICE_SPECIAL_VALUE_KEY, DICE_NUMBER_OF_DICE_KEY)])
+            if int(values[event]) >= num_dice:
+                window[event].update(str(num_dice-1))
+            if int(values[event]) < 0:
+                window[event].update(str(0))
+        
+        if event in [DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY]:
+            # Input validation
+            if not values[event]:
+                continue
+            if values[event][-1] not in '0123456789':
+                window[event].update(values[event][:-1])
+                continue
+
+        if any(key in event for key in DICE_CALCULATION_EVENTS):
+            global_events = [DICE_COLLECTION_SPECIAL_ROLL_KEY, DICE_COLLECTION_SPECIAL_VALUE_KEY,
+                             DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY,
+                             DICE_CALCULATION_KEY, DICE_ADD_DICE_KEY, DICE_REMOVE_DICE_KEY]
+            if event in global_events:
+                update_dice_collection(window, values)
+            else:
+                splits = event.split('-')
+                update_index = int(splits[-2])
+                update_dice_roll(window, values, update_index)
         #endregion
 
     window.close()
@@ -881,7 +953,8 @@ def dice_panel(visible: bool = False) -> sg.Column:
     layout = [
         [dice_collection_panel()],
         [sg.HorizontalSeparator()],
-        [sg.Button('Calculate', key=DICE_CALCULATION_KEY, enable_events=True, size=(20,1))]
+        [sg.Button('Calculate', key=DICE_CALCULATION_KEY, enable_events=True, size=(20,1))],
+        [dice_result_panel()]
     ]
 
     return sg.Column(layout, key=DICE_SCREEN_KEY, visible=visible, element_justification='center')
@@ -913,6 +986,16 @@ def dice_collection_panel() -> sg.Column:
                sg.Column(layout=[[sg.Button('Remove Dice',
                                             key=DICE_REMOVE_DICE_KEY,
                                             visible=False, size=(12, 1))]])]]
+    
+    layout += [
+        [sg.HorizontalSeparator()],
+        [sg.Text('Result is'),
+         sg.Combo(DiceTarget.get_values(), default_value=DiceTarget.get_display_name(DiceTarget.EQUAL_TO),
+                  key=DICE_TARGET_KEY, enable_events=True,
+                  readonly=True, size=(12, 1)),
+         sg.Input('0', size=(5,1), key=DICE_TARGET_VALUE1_KEY),
+         sg.Input('0', size=(5,1), key=DICE_TARGET_VALUE2_KEY, visible=False),]
+        ]
 
     return sg.Column(layout, expand_y=True, element_justification='center')
 
@@ -930,29 +1013,32 @@ def dice_roll_panel(index: int, visible: bool = False) -> sg.Column:
         sg.Column: The created Column object.
     """
     layout = [
-        [sg.Text('Number of dice:', size=(15, 1), justification='left'),
-         sg.Spin([i for i in range(0, 20)], initial_value=1,
-                 key=f'{DICE_NUMBER_OF_DICE_KEY}-{index}-',
-                 enable_events=True, size=(5, 1), auto_size_text=False)],
-        [sg.Text('Die type:', size=(15, 1), justification='left'),
+        [sg.Input(default_text=1, key=f'{DICE_NUMBER_OF_DICE_KEY}-{index}-',
+                 enable_events=True, size=(5, 1)),
+         sg.Text('x'),
          sg.Combo(Dice.get_values(), default_value=Dice.get_display_name(Dice.D20),
                   key=f'{DICE_DIE_TYPE_KEY}-{index}-', enable_events=True,
-                  readonly=True, size=(5, 1))],
-        [sg.Text('Modifier:', size=(15, 1), justification='left'),
-         sg.Spin([i for i in range(0, 10)], initial_value=0,
-                 key=f'{DICE_MODIFIER_KEY}-{index}-', enable_events=True,
-                 size=(5, 1), auto_size_text=False)],
-        [sg.Text('Special:', size=(15, 1), justification='left'),
+                  readonly=True, size=(5, 1)),
+         sg.Text('+'),
+         sg.Input(default_text=0, key=f'{DICE_MODIFIER_KEY}-{index}-',
+                  enable_events=True, size=(5, 1))],
+        [sg.Text('Special:'),
          sg.Combo(SpecialRoll.get_values(),
                   default_value=SpecialRoll.get_display_name(SpecialRoll.NONE),
                   key=f'{DICE_SPECIAL_ROLL_KEY}-{index}-',
                   enable_events=True, readonly=True, size=(12, 1)),
-         sg.Input('0', key=f'{DICE_SPECIAL_VALUE_KEY}-{index}-', enable_events=True,
+         sg.Input(default_text=0, key=f'{DICE_SPECIAL_VALUE_KEY}-{index}-', enable_events=True,
                   size=(5,1))]
     ]
 
     return sg.Column(layout, key=f'{DICE_PANEL_KEY}-{index}-',
                      visible=visible)
+
+def dice_result_panel() -> sg.Column:
+    layout =[
+        [sg.Text('0.00%', size=(6,1), key=DICE_PROBABILITY_RESULT_KEY, justification='center')]
+    ]
+    return sg.Column(layout, element_justification='center')
 #endregion
 
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
@@ -1365,10 +1451,10 @@ def show_tool_skills(window: sg.Window, values: dict):
 
 #region Dice Calculation Screen Functions
 def add_dice_roll(window: sg.Window):
-    """Adds a new weapon damage section to the combat screen
+    """Adds a new dice roll section to the combat screen
 
     Args:
-        window (sg.Window): The Window containing the combat screen.
+        window (sg.Window): The Window containing the dice screen.
     """
     # Find first hidden panel
     next_index = -1
@@ -1394,11 +1480,10 @@ def add_dice_roll(window: sg.Window):
     window.refresh()
 
 def remove_dice_roll(window: sg.Window):
-    """Removes a weapon damage section from the combat screen
+    """Removes a dice roll section from the combat screen
 
     Args:
-        window (sg.Window): The Window containing the combat screen.
-        parent_index (int): The index of the weapon section containing the damage section.
+        window (sg.Window): The Window containing the dice screen.
     """
     # Find last visible panel
     next_index = -1
@@ -1419,25 +1504,27 @@ def remove_dice_roll(window: sg.Window):
     window.refresh()
 
 def update_dice_roll(window: sg.Window, values: dict, index: int):
-    """Calculate the properties of a WeaponAttack and display them on the combat screen.
+    """Calculate the properties of a DiceRoll and display them on the dice screen.
 
     Args:
         window (sg.Window): The Window containing the combat screen.
         values (dict): The values of the last window read.
         index (int): The index of the weapon section to calculate for.
     """
-    special_roll = values[f'{DICE_SPECIAL_ROLL_KEY}-{index}-']
+    special_roll = SpecialRoll.convert_display_name(values[f'{DICE_SPECIAL_ROLL_KEY}-{index}-'])
     if special_roll == SpecialRoll.NONE:
-        window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=False)
+        if window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].visible:
+            window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=False)
     else:
-        window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=True, value=0)
+        if not window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].visible:
+            window[f'{DICE_SPECIAL_VALUE_KEY}-{index}-'].update(visible=True, value=0)
     _, values = window.read(timeout=0)
     update_dice_collection(window, values)
 
 def update_dice_collection(window: sg.Window, values: dict):
+    dice_rolls = []
     for dice_index in range(NUM_DICE_PANELS):
         col = window[f'{DICE_PANEL_KEY}-{dice_index+1}-']
-        dice_rolls = []
         if col.visible:
             num_dice = int(values[f'{DICE_NUMBER_OF_DICE_KEY}-{dice_index+1}-'])
             die_type = Dice.convert_display_name(values[f'{DICE_DIE_TYPE_KEY}-{dice_index+1}-'])
@@ -1445,18 +1532,43 @@ def update_dice_collection(window: sg.Window, values: dict):
             special_roll = SpecialRoll.convert_display_name(values[f'{DICE_SPECIAL_ROLL_KEY}-{dice_index+1}-'])
             special_value = int(values[f'{DICE_SPECIAL_VALUE_KEY}-{dice_index+1}-'])
             dice_rolls.append(DiceRoll(die_type, num_dice, modifier, special_roll, special_value))
-        collection = DiceCollection(dice_rolls)
+    collection = DiceCollection(dice_rolls)
+
+    target_type = DiceTarget.convert_display_name(values[DICE_TARGET_KEY])
+    if target_type == DiceTarget.BETWEEN:
+        if not window[DICE_TARGET_VALUE2_KEY].visible:
+            window[DICE_TARGET_VALUE2_KEY].update(visible=True, value = values[DICE_TARGET_VALUE1_KEY])
+    else:
+        if window[DICE_TARGET_VALUE2_KEY].visible:
+            window[DICE_TARGET_VALUE2_KEY].update(visible=False)
+    
+    _, values = window.read(timeout=0)
+    
+    probability = 0.0
+    if (target_type == DiceTarget.EQUAL_TO):
+        probability = collection.get_probability_target(int(values[DICE_TARGET_VALUE1_KEY]))
+    elif (target_type == DiceTarget.LESS_THAN):
+        probability = collection.get_probability_range(collection.min_value(), int(values[DICE_TARGET_VALUE1_KEY])-1)
+    elif (target_type == DiceTarget.GREATER_THAN):
+        probability = collection.get_probability_range(int(values[DICE_TARGET_VALUE1_KEY])+1, collection.max_value())
+    elif target_type == DiceTarget.BETWEEN:
+        probability = collection.get_probability_range(int(values[DICE_TARGET_VALUE1_KEY]), int(values[DICE_TARGET_VALUE2_KEY]))
+    elif target_type == DiceTarget.NOT_EQUAL_TO:
+        probability = 1.0 - collection.get_probability_target(int(values[DICE_TARGET_VALUE1_KEY]))
+    else:
+        raise NotImplementedError()
+    
+    window[DICE_PROBABILITY_RESULT_KEY].update(value="{:0.2%}".format(probability))
 
 def init_dice_panel(window: sg.Window, values: dict):
-    """Initialize the combat screen by evaluating the current data.
+    """Initialize the dice screen by evaluating the current data.
 
     Args:
-        window (sg.Window): The Window containing the combat screen.
+        window (sg.Window): The Window containing the dice screen.
         values (dict): The values of the last window read.
     """
     for update_index in range(1, NUM_DICE_PANELS+1):
         update_dice_roll(window, values, update_index)
-
 #endregion
 
 if __name__ == "__main__":
