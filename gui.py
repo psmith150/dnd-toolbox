@@ -7,10 +7,12 @@ from pathlib import Path
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from numpy import size
 from toolbox.common import Skill, Tool, Ability, Dice
 from toolbox.currency import Currency, CurrencyOptions
 from toolbox.combat import WeaponType, DamageType, Weapon, Damage, WeaponAttack
 from toolbox.dice import DiceTarget, SpecialRoll, DiceRoll, DiceCollection
+from toolbox.magic_items import MagicItem, MagicItemDbInterface, MagicItemDistribution, MagicItemDistributionRow
 from toolbox import version
 
 #region GUI Constants
@@ -29,6 +31,7 @@ COMBAT_SCREEN_KEY = '-screen-0-'
 CURRENCY_SCREEN_KEY = '-screen-1-'
 DOWNTIME_SCREEN_KEY = '-screen-2-'
 DICE_SCREEN_KEY = '-screen-3-'
+MAGIC_ITEM_SCREEN_KEY = '-screen-4-'
 WEAPON_TYPE_KEY = '-weapon-type-'
 WEAPON_BONUS_KEY = '-weapon-bonus-'
 EXIT_BUTTON_KEY = '-exit-'
@@ -124,7 +127,17 @@ DICE_TARGET_VALUE2_KEY = '-dice-target-value-2-'
 DICE_CALCULATION_KEY = '-dice-calculate-'
 DICE_PROBABILITY_RESULT_KEY = '-dice-probability-result-'
 DICE_PROBABILITY_GRAPH_KEY = '-dice-probability-graph-'
-SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator']
+MAGIC_ITEMS_DISTRIBUTION_COMPARISON_TABLE_KEY = '-magic-item-distribution-comparison-'
+MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY = '-magic-item-distribution-item-list-'
+MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY = '-magic-item-distribution-add-item-'
+MAGIC_ITEMS_DISTRIBUTION_REMOVE_ITEM_KEY = '-magic-item-distribution-remove-item-'
+MAGIC_ITEMS_DISTRIBUTION_MOVE_UP_KEY = '-magic-item-distribution-move-item-up-'
+MAGIC_ITEMS_DISTRIBUTION_MOVE_DOWN_KEY = '-magic-item-distribution-move-item-down-'
+MAGIC_ITEM_SELECT_LIST_KEY = '-magic-item-select-combo-'
+MAGIC_ITEM_SELECT_DESCRIPTION_KEY = '-magic-item-select-description-'
+MAGIC_ITEM_SELECT_OK_BUTTON = '-magic-item-select-ok-'
+MAGIC_ITEM_SELECT_CANCEL_BUTTON = '-magic-item-select-cancel-'
+SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator', 'Magic Items']
 #endregion
 
 DAMAGE_CALCULATION_EVENTS = [CHARACTER_LEVEL_KEY, CHARACTER_ATTACK_STAT_KEY,
@@ -145,6 +158,8 @@ DICE_CALCULATION_EVENTS = [DICE_NUMBER_OF_DICE_KEY, DICE_DIE_TYPE_KEY, DICE_MODI
                             DICE_TARGET_KEY, DICE_TARGET_VALUE1_KEY, DICE_TARGET_VALUE2_KEY]
 dice_canvas = None
 
+magic_items_target_distribution = MagicItemDistribution()
+
 def main():
     """The main calling program that displays the GUI and handles events.
 
@@ -161,13 +176,14 @@ def main():
             event, values = window.read(timeout=10)
         else:
             event, values = window.read()
-        #print(event, values)
+        print(event, values)
         if not first_read:
             first_read = True
             init_combat_panel(window, values)
             init_currency_panel(window, values)
             init_downtime_panel(window, values)
             init_dice_panel(window, values)
+            init_magic_items_panel(window, values)
         if event == sg.WINDOW_CLOSED or event == EXIT_BUTTON_KEY:
             break
 
@@ -390,6 +406,10 @@ def main():
             update_dice_results(window, values)
         #endregion
 
+        #region Magic Item screen events
+        if event == MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY:
+            add_magic_item(window, values)
+
     window.close()
 
 
@@ -414,7 +434,7 @@ def main_window() -> sg.Window:
     layout = [
         [sg.Combo(SCREEN_NAMES, key=NAV_COMBO_KEY, enable_events=True, default_value='Combat',
                   size=(20, 1), pad=(0, 8))],
-        [combat_panel(True), currency_panel(False), downtime_panel(False), dice_panel(False)],
+        [combat_panel(True), currency_panel(False), downtime_panel(False), dice_panel(False), magic_items_panel(False)],
         [sg.Exit(key=EXIT_BUTTON_KEY, size=(12, 1))],
         [bottom_bar]
     ]
@@ -1048,6 +1068,53 @@ def dice_result_panel() -> sg.Column:
     return sg.Column(layout, element_justification='center')
 #endregion
 
+#region Magic Items Screen
+def magic_items_panel(visible: bool = False) -> sg.Column:
+    layout = [
+        [magic_item_distribution_comparison_panel()],
+        [magic_item_items_panel()]
+    ]
+    return sg.Column(layout, key=MAGIC_ITEM_SCREEN_KEY, visible=visible, element_justification='center')
+
+def magic_item_distribution_comparison_panel() -> sg.Column:
+    row = MagicItemDistributionRow(1, 20)
+    num_columns = 1 + len(row.values)
+    headings = ['Level/CR'] + [heading.replace('_', ' ').title() for heading in row.values.keys()]
+    default_values = [    
+        ['Total'] + ['0/0'] * num_columns
+    ]
+    layout = [
+        [sg.Table(default_values, headings=headings, num_rows=2, hide_vertical_scroll=True, key=MAGIC_ITEMS_DISTRIBUTION_COMPARISON_TABLE_KEY)]
+    ]
+    return sg.Column(layout, expand_x=True, expand_y=True)
+
+def magic_item_items_panel() -> sg.Column:
+    button_layout = [
+        [sg.Button('Add', key=MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY, size=(8,1))]
+    ]
+    layout = [
+        [
+            sg.Push(),
+            sg.Column(layout=[[sg.Listbox([], key=MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY,
+                                            size=(50, 10))]], element_justification='center',
+                                            expand_y=True),
+            sg.Column(layout=button_layout, element_justification='left',
+                        expand_y=True),
+            sg.Push()
+        ]
+    ]
+    return sg.Column(layout, expand_x=False, expand_y=True, pad=(0, 5))
+
+def add_magic_item_popup(items: 'list[MagicItem]') -> sg.Window:
+    layout = [
+        [sg.Listbox(items, key=MAGIC_ITEM_SELECT_LIST_KEY, size=(30, 10), enable_events=True, select_mode=sg.LISTBOX_SELECT_MODE_SINGLE, expand_x=True)],
+        [sg.Text('', key=MAGIC_ITEM_SELECT_DESCRIPTION_KEY, expand_x=True, justification='center')],
+        [sg.Button('Add', key=MAGIC_ITEM_SELECT_OK_BUTTON, size=(10, 1)), sg.Button('Cancel', key=MAGIC_ITEM_SELECT_CANCEL_BUTTON, size=(10,1))]
+    ]
+    return sg.Window('Add Item', layout, disable_close=True, keep_on_top=True,
+                        element_justification='center', size=(600, 250))
+#endregion
+
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
     """Change the active screen being displayed in the window.
 
@@ -1598,6 +1665,79 @@ def init_dice_panel(window: sg.Window, values: dict):
     """
     for update_index in range(1, NUM_DICE_PANELS+1):
         update_dice_roll(window, values, update_index)
+#endregion
+
+#region Magic Items Screen Functions
+def update_magic_items_comparison(window: sg.Window) -> None:
+    # TODO: Populate item data
+    current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+    magic_items_target_distribution.clear_items()
+    magic_items_target_distribution.add_items(current_items)
+    actual_distribution = magic_items_target_distribution.process_items()
+    table_values = []
+    for (row_index, row) in enumerate(actual_distribution.rows):
+        row_values = [f'{row.start}-{row.end}']
+        for key in row.values.keys():
+            row_values.append(f'{row.values[key]}/{magic_items_target_distribution.rows[row_index].values[key]}')
+        table_values.append(row_values)
+    target_total_row = magic_items_target_distribution.total_row()
+    actual_total_row = actual_distribution.total_row()
+    table_values.append(['Total'] + [f'{actual_total_row.values[key]}/{target_total_row.values[key]}' for key in target_total_row.values.keys()])
+    
+    window[MAGIC_ITEMS_DISTRIBUTION_COMPARISON_TABLE_KEY].update(table_values, num_rows = len(table_values))
+
+def add_magic_item(window: sg.Window, values: list) -> None:
+    db = MagicItemDbInterface()
+    items = db.get_magic_items()
+    items.sort(key=lambda x: x.name)
+    popup_window = add_magic_item_popup(items)
+
+    while True:
+        popup_event, popup_values = popup_window.read()
+        print(popup_event, popup_values)
+        if popup_event == sg.WINDOW_CLOSED or popup_event == MAGIC_ITEM_SELECT_CANCEL_BUTTON:
+            new_item = None
+            break
+        if popup_event == MAGIC_ITEM_SELECT_LIST_KEY:
+            selected_item = popup_values[MAGIC_ITEM_SELECT_LIST_KEY][0]
+            description = f'{selected_item.item_type}, {selected_item.rarity}, {selected_item.power_level} magic item'
+            if selected_item.attunement:
+                description += f' (requires attunement by a {selected_item.attunement_requirement})'
+            popup_window[MAGIC_ITEM_SELECT_DESCRIPTION_KEY].update(description)
+        if popup_event == MAGIC_ITEM_SELECT_OK_BUTTON:
+            new_item = popup_values[MAGIC_ITEM_SELECT_LIST_KEY][0]
+            break
+    
+    popup_window.close()
+    if new_item:
+        current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+        current_items.append(new_item)
+        window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items)
+        update_magic_items_comparison(window)
+
+def remove_magic_item(window: sg.Window, values: list) -> None:
+    pass
+
+def move_magic_item_up(window: sg.Window, values: list) -> None:
+    pass
+
+def move_magic_item_down(window: sg.Window, values: list) -> None:
+    pass
+
+def init_magic_items_panel(window: sg.Window, values: list) -> None:
+    magic_items_target_distribution.add_row(
+        MagicItemDistributionRow(1, 4, 6, 2, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0)
+    )
+    magic_items_target_distribution.add_row(
+        MagicItemDistributionRow(5, 10, 10, 12, 5, 1, 0, 0, 0, 5, 1, 0, 0, 0)
+    )
+    magic_items_target_distribution.add_row(
+        MagicItemDistributionRow(11, 16, 3, 6, 9, 5, 1, 0, 0, 1, 2, 2, 1, 0)
+    )
+    magic_items_target_distribution.add_row(
+        MagicItemDistributionRow(17, 20, 0, 0, 4, 9, 6, 0, 0, 0, 1, 2, 3, 0)
+    )
+    update_magic_items_comparison(window)
 #endregion
 
 if __name__ == "__main__":

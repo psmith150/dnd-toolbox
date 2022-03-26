@@ -19,6 +19,9 @@ class MagicItem():
         self.rarity = rarity
         self.power_level = power_level
         self.attunement_requirement = attunement_requirement
+    
+    def __str__(self) -> str:
+        return self.name
 
 class MagicItemDbInterface():
     def __init__(self) -> None:
@@ -93,11 +96,14 @@ class MagicItemDistribution():
         self._items = []
     
     def add_item(self, item: MagicItem) -> None:
-        self._items.add(item)
+        self._items.append(item)
     
     def add_items(self, items: List[MagicItem]) -> None:
         for item in items:
             self.add_item(item)
+    
+    def clear_items(self) -> None:
+        self._items = []
     
     def add_row(self, new_row: MagicItemDistributionRow) -> None:
         if any([row for row in self.rows if (row.start <= new_row.start <= row.end) or (row.start <= new_row.end <= row.end)]):
@@ -110,27 +116,33 @@ class MagicItemDistribution():
     def total_row(self) -> MagicItemDistributionRow:
         total_row = MagicItemDistributionRow(1, 20)
         for row in self.rows:
-            for (key, value) in row.items:
-                total_row[key] += value
+            for (key, value) in row.values.items():
+                total_row.values[key] += value
         return total_row        
     
-    def process_items(self, ignore_power_level = False) -> MagicItemDistribution:
+    def process_items(self, ignore_power_level: bool = False) -> MagicItemDistribution:
         distribution = MagicItemDistribution()
         for row in self.rows:
             new_row = MagicItemDistributionRow(row.start, row.end)
             distribution.add_row(new_row)
         for item in self._items:
+            success = False
             for row_index, row in enumerate(distribution.rows):
                 try:
-                    target = self.rows[row_index].values[f'{item.rarity.lower()}_{item.power_level.lower()}']
+                    target = self.rows[row_index].values[self._format_item_key(item)]
                 except KeyError:
                     raise NotImplementedError(f'Item classification {item.rarity}/{item.power_level} is undefined.')
                 try:
-                    actual = distribution.rows[row_index].values[f'{item.rarity.lower()}_{item.power_level.lower()}']
+                    actual = distribution.rows[row_index].values[self._format_item_key(item)]
                 except KeyError:
                     raise NotImplementedError(f'Item classification {item.rarity}/{item.power_level} is undefined.')
                 if actual < target:
-                    distribution.rows[row_index].values[f'{item.rarity.lower()}_{item.power_level.lower()}'] += 1
+                    distribution.rows[row_index].values[self._format_item_key(item)] += 1
+                    success = True
                     break
-            distribution.rows[-1].values[f'{item.rarity.lower()}_{item.power_level.lower()}'] += 1
+            if not success:
+                distribution.rows[-1].values[self._format_item_key(item)] += 1
         return distribution
+    
+    def _format_item_key(self, item: MagicItem) -> str:
+        return f'{item.rarity.replace(" ", "_").lower()}_{item.power_level.replace(" ", "_").lower()}'
