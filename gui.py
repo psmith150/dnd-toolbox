@@ -4,6 +4,7 @@ from __future__ import division, absolute_import
 from math import ceil, floor
 import sys
 from pathlib import Path
+import json
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -133,10 +134,17 @@ MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY = '-magic-item-distribution-add-item-'
 MAGIC_ITEMS_DISTRIBUTION_REMOVE_ITEM_KEY = '-magic-item-distribution-remove-item-'
 MAGIC_ITEMS_DISTRIBUTION_MOVE_UP_KEY = '-magic-item-distribution-move-item-up-'
 MAGIC_ITEMS_DISTRIBUTION_MOVE_DOWN_KEY = '-magic-item-distribution-move-item-down-'
+MAGIC_ITEMS_DISTRIBUTION_DETAILS_KEY = '-magic-item-distribution-details-'
 MAGIC_ITEM_SELECT_LIST_KEY = '-magic-item-select-combo-'
 MAGIC_ITEM_SELECT_DESCRIPTION_KEY = '-magic-item-select-description-'
-MAGIC_ITEM_SELECT_OK_BUTTON = '-magic-item-select-ok-'
-MAGIC_ITEM_SELECT_CANCEL_BUTTON = '-magic-item-select-cancel-'
+MAGIC_ITEM_SELECT_OK_BUTTON_KEY = '-magic-item-select-ok-'
+MAGIC_ITEM_SELECT_CANCEL_BUTTON_KEY = '-magic-item-select-cancel-'
+MAGIC_ITEM_DETAILS_CLOSE_BUTTON_KEY = '-magic-item-details-close-'
+MAGIC_ITEMS_SAVE_LOAD_BUTTON_KEY = '-magic-item-menu-'
+MAGIC_ITEMS_SAVE_ITEMS_BUTTON_KEY = '-magic-item-save-items-'
+MAGIC_ITEMS_LOAD_ITEMS_BUTTON_KEY = '-magic-item-load-items-'
+MAGIC_ITEMS_SAVE_DISTRIBUTION_BUTTON_KEY = '-magic-item-save-distribution-'
+MAGIC_ITEMS_LOAD_DISTRIBUTION_BUTTON_KEY = '-magic-item-load-distribution-'
 SCREEN_NAMES = ['Combat', 'Currency', 'Downtime Training', 'Dice Calculator', 'Magic Items']
 #endregion
 
@@ -409,6 +417,24 @@ def main():
         #region Magic Item screen events
         if event == MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY:
             add_magic_item(window, values)
+        if event == MAGIC_ITEMS_DISTRIBUTION_REMOVE_ITEM_KEY:
+            remove_magic_item(window, values)
+        if event == MAGIC_ITEMS_DISTRIBUTION_MOVE_UP_KEY:
+            move_magic_item_up(window, values)
+        if event == MAGIC_ITEMS_DISTRIBUTION_MOVE_DOWN_KEY:
+            move_magic_item_down(window, values)
+        if event == MAGIC_ITEMS_DISTRIBUTION_DETAILS_KEY:
+            show_magic_item_details(values)
+        if event == MAGIC_ITEMS_SAVE_LOAD_BUTTON_KEY:
+            menu_option = values[MAGIC_ITEMS_SAVE_LOAD_BUTTON_KEY].split('::')[1]
+            if menu_option == MAGIC_ITEMS_SAVE_ITEMS_BUTTON_KEY:
+                save_magic_items(window)
+            if menu_option == MAGIC_ITEMS_LOAD_ITEMS_BUTTON_KEY:
+                load_magic_items(window, values)
+            if menu_option == MAGIC_ITEMS_SAVE_DISTRIBUTION_BUTTON_KEY:
+                save_magic_item_distribution(window)
+            if menu_option == MAGIC_ITEMS_LOAD_DISTRIBUTION_BUTTON_KEY:
+                load_magic_item_distribution(window, values)
 
     window.close()
 
@@ -1090,17 +1116,30 @@ def magic_item_distribution_comparison_panel() -> sg.Column:
 
 def magic_item_items_panel() -> sg.Column:
     button_layout = [
-        [sg.Button('Add', key=MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY, size=(8,1))]
+        [sg.Button('Add', key=MAGIC_ITEMS_DISTRIBUTION_ADD_ITEM_KEY, size=(8,1))],
+        [sg.Button('Remove', key=MAGIC_ITEMS_DISTRIBUTION_REMOVE_ITEM_KEY, size=(8,1))],
+        [sg.Button('Move Up', key=MAGIC_ITEMS_DISTRIBUTION_MOVE_UP_KEY, size=(8,1))],
+        [sg.Button('Move Down', key=MAGIC_ITEMS_DISTRIBUTION_MOVE_DOWN_KEY, size=(8,1))],
+        [sg.Button('Details', key=MAGIC_ITEMS_DISTRIBUTION_DETAILS_KEY, size=(8,1))]
+    ]
+    button_menu = [
+        'Unused', [
+            f'Save Items::{MAGIC_ITEMS_SAVE_ITEMS_BUTTON_KEY}',
+            f'Load Items::{MAGIC_ITEMS_LOAD_ITEMS_BUTTON_KEY}',
+            f'Save Config::{MAGIC_ITEMS_SAVE_DISTRIBUTION_BUTTON_KEY}',
+            f'Load Config::{MAGIC_ITEMS_LOAD_DISTRIBUTION_BUTTON_KEY}',
+        ]
     ]
     layout = [
         [
             sg.Push(),
             sg.Column(layout=[[sg.Listbox([], key=MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY,
-                                            size=(50, 10))]], element_justification='center',
-                                            expand_y=True),
+                                            size=(50, 10), select_mode=sg.SELECT_MODE_SINGLE)]],
+                        element_justification='center', expand_y=True),
             sg.Column(layout=button_layout, element_justification='left',
                         expand_y=True),
-            sg.Push()
+            sg.Push(),
+            sg.ButtonMenu('Save/Load', button_menu, key=MAGIC_ITEMS_SAVE_LOAD_BUTTON_KEY)
         ]
     ]
     return sg.Column(layout, expand_x=False, expand_y=True, pad=(0, 5))
@@ -1109,10 +1148,20 @@ def add_magic_item_popup(items: 'list[MagicItem]') -> sg.Window:
     layout = [
         [sg.Listbox(items, key=MAGIC_ITEM_SELECT_LIST_KEY, size=(30, 10), enable_events=True, select_mode=sg.LISTBOX_SELECT_MODE_SINGLE, expand_x=True)],
         [sg.Text('', key=MAGIC_ITEM_SELECT_DESCRIPTION_KEY, expand_x=True, justification='center')],
-        [sg.Button('Add', key=MAGIC_ITEM_SELECT_OK_BUTTON, size=(10, 1)), sg.Button('Cancel', key=MAGIC_ITEM_SELECT_CANCEL_BUTTON, size=(10,1))]
+        [sg.Button('Add', key=MAGIC_ITEM_SELECT_OK_BUTTON_KEY, size=(10, 1)), sg.Button('Cancel', key=MAGIC_ITEM_SELECT_CANCEL_BUTTON_KEY, size=(10,1))]
     ]
     return sg.Window('Add Item', layout, disable_close=True, keep_on_top=True,
                         element_justification='center', size=(600, 250))
+
+def magic_item_details_popup(item: MagicItem) -> sg.Window:
+    layout = [
+        [sg.Text(item.name, expand_x=True, justification='center')],
+        [sg.Text(format_magic_item_description(item), expand_x=True, justification='center')],
+        [sg.VStretch()],
+        [sg.Button('Close', key=MAGIC_ITEM_DETAILS_CLOSE_BUTTON_KEY, size=(10, 1))]
+    ]
+    return sg.Window('Item Details', layout, keep_on_top=True,
+                        element_justification='center', size=(600, 100))
 #endregion
 
 def change_screen(window: sg.Window, old_layout: int, new_layout: int) -> int:
@@ -1695,34 +1744,104 @@ def add_magic_item(window: sg.Window, values: list) -> None:
     while True:
         popup_event, popup_values = popup_window.read()
         print(popup_event, popup_values)
-        if popup_event == sg.WINDOW_CLOSED or popup_event == MAGIC_ITEM_SELECT_CANCEL_BUTTON:
+        if popup_event == sg.WINDOW_CLOSED or popup_event == MAGIC_ITEM_SELECT_CANCEL_BUTTON_KEY:
             new_item = None
             break
         if popup_event == MAGIC_ITEM_SELECT_LIST_KEY:
             selected_item = popup_values[MAGIC_ITEM_SELECT_LIST_KEY][0]
-            description = f'{selected_item.item_type}, {selected_item.rarity}, {selected_item.power_level} magic item'
-            if selected_item.attunement:
-                description += f' (requires attunement by a {selected_item.attunement_requirement})'
-            popup_window[MAGIC_ITEM_SELECT_DESCRIPTION_KEY].update(description)
-        if popup_event == MAGIC_ITEM_SELECT_OK_BUTTON:
+            popup_window[MAGIC_ITEM_SELECT_DESCRIPTION_KEY].update(format_magic_item_description(selected_item))
+        if popup_event == MAGIC_ITEM_SELECT_OK_BUTTON_KEY:
             new_item = popup_values[MAGIC_ITEM_SELECT_LIST_KEY][0]
             break
     
     popup_window.close()
     if new_item:
         current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
-        current_items.append(new_item)
+        selected_item = values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY][0] if values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY] else None
+        if selected_item:
+            current_items.insert(current_items.index(selected_item), new_item)
+        else:
+            current_items.append(new_item)
         window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items)
         update_magic_items_comparison(window)
 
 def remove_magic_item(window: sg.Window, values: list) -> None:
-    pass
+    current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+    selected_item = values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY][0] if values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY] else None
+    if selected_item:
+        current_items.remove(selected_item)
+        window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items)
+        update_magic_items_comparison(window)
+    else:
+        sg.popup_error('Please select an item to remove.', title='No item selected')
 
 def move_magic_item_up(window: sg.Window, values: list) -> None:
-    pass
+    current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+    selected_item = values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY][0] if values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY] else None
+    if selected_item:
+        selected_index = current_items.index(selected_item)
+        if len(current_items) > 1 and selected_index > 0:
+            current_items.remove(selected_item)
+            current_items.insert(selected_index - 1, selected_item)
+            window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items, set_to_index=selected_index-1)
+    else:
+        sg.popup_error('Please select an item to move up.', title='No item selected')
 
 def move_magic_item_down(window: sg.Window, values: list) -> None:
+    current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+    selected_item = values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY][0] if values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY] else None
+    if selected_item:
+        selected_index = current_items.index(selected_item)
+        if len(current_items) > 1 and selected_index < len(current_items) - 1:
+            current_items.remove(selected_item)
+            current_items.insert(selected_index + 1, selected_item)
+            window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items, set_to_index=selected_index+1)
+    else:
+        sg.popup_error('Please select an item to move down.', title='No item selected')
+
+def show_magic_item_details(values: list) -> None:
+    selected_item = values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY][0] if values[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY] else None
+    if selected_item:
+        popup_window = magic_item_details_popup(selected_item)
+        while True:
+            popup_event, popup_values = popup_window.read()
+            print(popup_event, popup_values)
+            if popup_event == sg.WINDOW_CLOSED or popup_event == MAGIC_ITEM_DETAILS_CLOSE_BUTTON_KEY:
+                break 
+    popup_window.close()
+
+def save_magic_item_distribution(window: sg.Window) -> None:
     pass
+
+def load_magic_item_distribution(window: sg.Window, values: list) -> None:
+    pass
+
+def save_magic_items(window: sg.Window) -> None:
+    filename = sg.popup_get_file('', no_window=True, default_extension='.json', save_as=True,
+                            file_types=(('JSON files', '*.json'),))
+    if not filename:
+        return
+    current_items = window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].get_list_values()
+    with open(filename, 'w') as file:
+        json.dump(current_items, file, default=lambda x: x.__dict__)
+
+def load_magic_items(window: sg.Window, values: list) -> None:
+    filename = sg.popup_get_file('', no_window=True, default_extension='.json',
+                            file_types=(('JSON files', '*.json'),))
+    if not filename:
+        return
+    with open(filename, 'r') as file:
+        loaded_items = json.load(file)
+    db = MagicItemDbInterface()
+    configured_items = db.get_magic_items()
+    current_items = []
+    for item in loaded_items:
+        match = next(filter(lambda x: x.name == item['name'], configured_items), None)
+        if match:
+            current_items.append(match)
+        else:
+            sg.popup_ok(f'Unable to find a match for item {item.name}.', title='Unmatched item')
+    window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items)
 
 def init_magic_items_panel(window: sg.Window, values: list) -> None:
     magic_items_target_distribution.add_row(
@@ -1738,6 +1857,15 @@ def init_magic_items_panel(window: sg.Window, values: list) -> None:
         MagicItemDistributionRow(17, 20, 0, 0, 4, 9, 6, 0, 0, 0, 1, 2, 3, 0)
     )
     update_magic_items_comparison(window)
+
+def format_magic_item_description(item: MagicItem) -> str:
+    description = f'{item.item_type}, {item.rarity}, {item.power_level} magic item'
+    if item.attunement:
+        if item.attunement_requirement:
+            description += f' (requires attunement by a {item.attunement_requirement})'
+        else:
+            description += ' (requires attunement)'
+    return description
 #endregion
 
 if __name__ == "__main__":
