@@ -2,6 +2,7 @@
 """
 from __future__ import division, absolute_import
 from math import ceil, floor
+from pickle import NONE
 import sys
 from pathlib import Path
 import json
@@ -430,11 +431,11 @@ def main():
             if menu_option == MAGIC_ITEMS_SAVE_ITEMS_BUTTON_KEY:
                 save_magic_items(window)
             if menu_option == MAGIC_ITEMS_LOAD_ITEMS_BUTTON_KEY:
-                load_magic_items(window, values)
+                load_magic_items(window)
             if menu_option == MAGIC_ITEMS_SAVE_DISTRIBUTION_BUTTON_KEY:
                 save_magic_item_distribution(window)
             if menu_option == MAGIC_ITEMS_LOAD_DISTRIBUTION_BUTTON_KEY:
-                load_magic_item_distribution(window, values)
+                load_magic_item_distribution(window)
 
     window.close()
 
@@ -1811,10 +1812,27 @@ def show_magic_item_details(values: list) -> None:
     popup_window.close()
 
 def save_magic_item_distribution(window: sg.Window) -> None:
-    pass
+    filename = sg.popup_get_file('', no_window=True, default_extension='.json', save_as=True,
+                            file_types=(('JSON files', '*.json'),))
+    if not filename:
+        return
+    with open(filename, 'w') as file:
+        json.dump(magic_items_target_distribution, file, default=lambda x: x.__dict__)
 
-def load_magic_item_distribution(window: sg.Window, values: list) -> None:
-    pass
+def load_magic_item_distribution(window: sg.Window) -> None:
+    global magic_items_target_distribution
+    filename = sg.popup_get_file('', no_window=True, default_extension='.json',
+                            file_types=(('JSON files', '*.json'),))
+    if not filename:
+        return
+    with open(filename, 'r') as file:
+        loaded_distribution = json.load(file) 
+    magic_items_target_distribution = MagicItemDistribution()
+    for row in loaded_distribution['rows']:
+        new_row = MagicItemDistributionRow(row['start'], row['end'])
+        new_row.values = row['values']
+        magic_items_target_distribution.add_row(new_row)
+    update_magic_items_comparison(window)
 
 def save_magic_items(window: sg.Window) -> None:
     filename = sg.popup_get_file('', no_window=True, default_extension='.json', save_as=True,
@@ -1825,7 +1843,7 @@ def save_magic_items(window: sg.Window) -> None:
     with open(filename, 'w') as file:
         json.dump(current_items, file, default=lambda x: x.__dict__)
 
-def load_magic_items(window: sg.Window, values: list) -> None:
+def load_magic_items(window: sg.Window) -> None:
     filename = sg.popup_get_file('', no_window=True, default_extension='.json',
                             file_types=(('JSON files', '*.json'),))
     if not filename:
@@ -1842,6 +1860,7 @@ def load_magic_items(window: sg.Window, values: list) -> None:
         else:
             sg.popup_ok(f'Unable to find a match for item {item.name}.', title='Unmatched item')
     window[MAGIC_ITEMS_DISTRIBUTION_ITEM_LIST_KEY].update(values=current_items)
+    update_magic_items_comparison(window)
 
 def init_magic_items_panel(window: sg.Window, values: list) -> None:
     magic_items_target_distribution.add_row(
